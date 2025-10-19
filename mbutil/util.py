@@ -16,9 +16,17 @@ logger = logging.getLogger(__name__)
 def flip_y(zoom, y):
     return (2**zoom-1) - y
 
-def get_tile_hash(data):
-    """Generate a hash ID for tile data using SHA256."""
-    return hashlib.sha256(data).hexdigest()[:16]
+def fnv1a(data):
+    """
+    FNV-1a hash function for tile deduplication.
+    Fast, non-cryptographic hash with good distribution.
+    """
+    h = 14695981039346656037
+    for b in data:
+        h ^= b
+        h *= 1099511628211
+        h &= 0xFFFFFFFFFFFFFFFF  # 64-bit mask
+    return str(h)
 
 def mbtiles_setup(cur, use_deduplication=False):
     """
@@ -268,7 +276,7 @@ def disk_to_mbtiles(directory_path, mbtiles_file, **kwargs):
                     
                     if use_compression:
                         # Hash-based deduplication
-                        tile_hash = get_tile_hash(file_content)
+                        tile_hash = fnv1a(file_content)
                         
                         # Always add to batch - INSERT OR IGNORE will handle duplicates
                         tile_data_batch.append((tile_hash, sqlite3.Binary(file_content)))
@@ -492,4 +500,3 @@ def mbtiles_to_disk(mbtiles_file, directory_path, **kwargs):
             logger.info('%s / %s grids exported' % (done, count))
         
         g = grids.fetchone()
- 
