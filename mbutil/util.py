@@ -20,6 +20,7 @@ def fnv1a(data):
     """
     FNV-1a hash function for tile deduplication.
     Fast, non-cryptographic hash with good distribution.
+    Returns 64-bit hash as string.
     """
     h = 14695981039346656037
     for b in data:
@@ -27,6 +28,32 @@ def fnv1a(data):
         h *= 1099511628211
         h &= 0xFFFFFFFFFFFFFFFF  # 64-bit mask
     return str(h)
+
+def get_tile_hash(data, hash_type='fnv1a'):
+    """
+    Generate a hash ID for tile data.
+    
+    Args:
+        data: Tile data bytes
+        hash_type: Hash algorithm to use
+            - 'fnv1a': Fast FNV-1a hash (64-bit, default)
+            - 'sha256': Full SHA256 hash (256-bit, most secure)
+            - 'sha256_truncated': SHA256 truncated to 16 chars (64-bit)
+            - 'md5': MD5 hash (128-bit, fast but deprecated)
+    
+    Returns:
+        Hash string suitable for use as tile_data_id
+    """
+    if hash_type == 'fnv1a':
+        return fnv1a(data)
+    elif hash_type == 'sha256':
+        return hashlib.sha256(data).hexdigest()
+    elif hash_type == 'sha256_truncated':
+        return hashlib.sha256(data).hexdigest()[:16]
+    elif hash_type == 'md5':
+        return hashlib.md5(data).hexdigest()
+    else:
+        raise ValueError(f"Unknown hash_type: {hash_type}. Use 'fnv1a', 'sha256', 'sha256_truncated', or 'md5'")
 
 def mbtiles_setup(cur, use_deduplication=False):
     """
@@ -128,14 +155,16 @@ def disk_to_mbtiles(directory_path, mbtiles_file, **kwargs):
     
     If compression=True, uses hash-based deduplication during import.
     If compression=False, uses simple schema without deduplication (original mbutil behavior).
+    Hash type can be specified with hash_type parameter.
     """
     silent = kwargs.get('silent')
     use_compression = kwargs.get('compression', False)
+    hash_type = kwargs.get('hash_type', 'fnv1a')
 
     if not silent:
         logger.info("Importing disk to MBTiles")
         if use_compression:
-            logger.info("Using hash-based deduplication")
+            logger.info("Using hash-based deduplication with %s hash" % hash_type)
         logger.debug("%s --> %s" % (directory_path, mbtiles_file))
 
     con = mbtiles_connect(mbtiles_file, silent)
@@ -276,7 +305,7 @@ def disk_to_mbtiles(directory_path, mbtiles_file, **kwargs):
                     
                     if use_compression:
                         # Hash-based deduplication
-                        tile_hash = fnv1a(file_content)
+                        tile_hash = get_tile_hash(file_content, hash_type)
                         
                         # Always add to batch - INSERT OR IGNORE will handle duplicates
                         tile_data_batch.append((tile_hash, sqlite3.Binary(file_content)))

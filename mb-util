@@ -53,6 +53,14 @@ if __name__ == '__main__':
         action="store_true",
         default=False)
 
+    parser.add_option('--hash_type', dest='hash_type',
+        help='''Hash algorithm for tile deduplication when using --do_compression. '''
+        + '''Options: fnv1a (fast, default), sha256 (most secure), '''
+        + '''sha256_truncated (balanced), md5 (legacy)''',
+        type='choice',
+        choices=['fnv1a', 'sha256', 'sha256_truncated', 'md5'],
+        default='fnv1a')
+
     parser.add_option('--silent', dest='silent',
         help='''Dictate whether the operations should run silently''',
         action="store_true",
