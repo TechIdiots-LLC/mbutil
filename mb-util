@@ -31,11 +31,12 @@ if __name__ == '__main__':
     
     parser.add_option('--scheme', dest='scheme',
         help='''Tiling scheme of the tiles. Default is "xyz" (z/x/y), other options '''
-        + '''are "tms" which is also z/x/y but uses a flipped y coordinate, and "wms" '''
+        + '''are "tms" which is also z/x/y but uses a flipped y coordinate, "wms" '''
         + '''which replicates the MapServer WMS TileCache directory structure '''
-        + '''"z/000/000/x/000/000/y.png"''',
+        + '''"z/000/000/x/000/000/y.png", "zyx" which is the format vips dzsave '''
+        + '''--layout google uses, "ags" for ArcGIS Server, and "gwc" for GeoWebCache.''',
         type='choice',
-        choices=['wms', 'tms', 'xyz', 'zyx', 'gwc','ags'],
+        choices=['wms', 'tms', 'xyz', 'zyx', 'gwc', 'ags'],
         default='xyz')
         
     parser.add_option('--image_format', dest='format',
@@ -49,12 +50,14 @@ if __name__ == '__main__':
         default='grid')
 
     parser.add_option('--do_compression', dest='compression',
-        help='''Do mbtiles compression''',
+        help='''Enable tile deduplication to reduce mbtiles file size. '''
+        + '''Uses hash-based deduplication to store each unique tile only once, '''
+        + '''with references for duplicate tiles.''',
         action="store_true",
         default=False)
 
     parser.add_option('--hash_type', dest='hash_type',
-        help='''Hash algorithm for tile deduplication when using --do_compression. '''
+        help='''Hash algorithm for tile deduplication (use with --do_compression). '''
         + '''Options: fnv1a (fast, default), sha256 (most secure), '''
         + '''sha256_truncated (balanced), md5 (legacy)''',
         type='choice',
