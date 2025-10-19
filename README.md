@@ -1,21 +1,12 @@
 # MBUtil
 
-MBUtil is a utility for importing and exporting the [MBTiles](http://mbtiles.org/) format,
-typically created with [Mapbox](http://mapbox.com/) [TileMill](http://mapbox.com/tilemill/).
-
-Before exporting tiles to disk, see if there's a [Mapbox Hosting plan](http://mapbox.com/plans/)
-or an open source [MBTiles server implementation](https://github.com/mapbox/mbtiles-spec/wiki/Implementations)
-that works for you - tiles on disk are notoriously difficult to manage.
-
-[![Build Status](https://secure.travis-ci.org/mapbox/mbutil.png)](http://travis-ci.org/mapbox/mbutil)
-
-**Note well**: this project is no longer actively developed. Issues and pull requests will be attended to when possible, but delays should be expected.
+MBUtil is a utility for importing and exporting the [MBTiles](http://mbtiles.org/) format.
 
 ## Installation
 
 Git checkout (requires git)
 
-    git clone https://github.com/mapbox/mbutil.git
+    git clone https://github.com/acalcutt/mbutil.git
     cd mbutil
     # get usage
     ./mb-util -h
@@ -25,11 +16,6 @@ Then to install the mb-util command globally:
     sudo python setup.py install
     # then you can run:
     mb-util
-
-Python installation (requires easy_install)
-
-    easy_install mbutil
-    mb-util -h
 
 ## Usage
 
