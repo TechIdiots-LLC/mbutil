@@ -688,6 +688,8 @@ try:
                     metadata = json.load(f)
                     # Normalize: parse 'json' row into top-level keys for PMTiles
                     metadata = normalize_metadata(metadata)
+                    # Per PMTiles spec: scheme is always xyz, remove if present
+                    metadata.pop('scheme', None)
                 if not silent:
                     logger.info('metadata loaded')
         except IOError:
@@ -912,9 +914,20 @@ try:
         
         with write(pmtiles_file) as writer:
             tileid_set = []
+            skipped = 0
             for row in cursor.execute("SELECT zoom_level,tile_column,tile_row FROM tiles"):
-                flipped = flip_y(row[0], row[2])
-                tileid_set.append(zxy_to_tileid(row[0], row[1], flipped))
+                z, x, tms_y = row[0], row[1], row[2]
+                flipped = flip_y(z, tms_y)
+                max_coord = (1 << z) - 1
+                if x < 0 or x > max_coord or flipped < 0 or flipped > max_coord:
+                    if not silent:
+                        logger.warning("Skipping out-of-bounds tile: z=%s x=%s tms_y=%s (xyz_y=%s, max=%s)" % (z, x, tms_y, flipped, max_coord))
+                    skipped += 1
+                    continue
+                tileid_set.append(zxy_to_tileid(z, x, flipped))
+            
+            if skipped > 0 and not silent:
+                logger.warning("Skipped %d out-of-bounds tiles" % skipped)
                 
             tileid_set.sort()
             
@@ -924,6 +937,9 @@ try:
             
             # Normalize: parse 'json' row into top-level keys for PMTiles
             mbtiles_metadata = normalize_metadata(mbtiles_metadata)
+            
+            # Per PMTiles spec: scheme is always xyz, remove if present
+            mbtiles_metadata.pop('scheme', None)
                 
             is_pbf = mbtiles_metadata.get("format") in ("pbf", "mvt")
             
@@ -983,6 +999,9 @@ try:
             file_ext = get_tile_ext(header, kwargs.get('format', 'png'))
 
             pmtiles_header_to_metadata(header, metadata, kwargs.get('format', 'png'))
+
+            # MBTiles stores tiles in TMS scheme
+            metadata['scheme'] = 'tms'
 
             # Insert metadata into MBTiles per 1.3 spec
             for name, value in prepare_metadata_for_mbtiles(metadata):
