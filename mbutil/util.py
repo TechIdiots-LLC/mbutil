@@ -652,10 +652,12 @@ try:
         elif 'bounds' not in metadata:
             metadata['bounds'] = "-180,-85.05112877980659,180,85.0511287798066"
 
-        if 'center_zoom' in header:
+        if 'center_zoom' in header and header['center_zoom'] > 0:
             metadata['center'] = f"{header.get('center_lon_e7', 0)/10000000},{header.get('center_lat_e7', 0)/10000000},{header['center_zoom']}"
-        elif 'center' not in metadata and 'max_zoom' in header:
-            metadata['center'] = f"{header.get('center_lon_e7', 0)/10000000},{header.get('center_lat_e7', 0)/10000000},{int(header['max_zoom']) // 2}"
+        elif 'center' not in metadata or metadata.get('center') in (None, '', '0,0,0', '0.0,0.0,0'):
+            if 'max_zoom' in header:
+                center_zoom = (int(header.get('min_zoom', 0)) + int(header['max_zoom'])) // 2
+                metadata['center'] = f"{header.get('center_lon_e7', 0)/10000000},{header.get('center_lat_e7', 0)/10000000},{center_zoom}"
 
         return metadata
 
@@ -949,6 +951,10 @@ try:
             
             from pmtiles.convert import mbtiles_to_header_json
             pmtiles_header, pmtiles_metadata_dict = mbtiles_to_header_json(mbtiles_metadata)
+            
+            # If source had no center, use midpoint of zoom range instead of min_zoom
+            if 'center' not in mbtiles_metadata:
+                pmtiles_header['center_zoom'] = (pmtiles_header['min_zoom'] + pmtiles_header['max_zoom']) // 2
             
             for tileid in tileid_set:
                 z, x, y = tileid_to_zxy(tileid)
