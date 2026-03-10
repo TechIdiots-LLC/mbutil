@@ -55,6 +55,55 @@ def get_tile_hash(data, hash_type='fnv1a'):
     else:
         raise ValueError(f"Unknown hash_type: {hash_type}. Use 'fnv1a', 'sha256', 'sha256_truncated', or 'md5'")
 
+def normalize_metadata(metadata):
+    """Normalize metadata from MBTiles format to a flat dict with parsed JSON.
+    
+    MBTiles stores vector_layers/tilestats inside a stringified 'json' metadata row.
+    PMTiles and metadata.json on disk expect them as top-level parsed objects.
+    This function parses the 'json' row and merges its contents to the top level.
+    """
+    result = dict(metadata)
+    if 'json' in result and isinstance(result['json'], str):
+        try:
+            json_value = json.loads(result['json'])
+            if isinstance(json_value, dict):
+                for k, v in json_value.items():
+                    if k not in result:
+                        result[k] = v
+                del result['json']
+        except (json.JSONDecodeError, ValueError):
+            pass
+    return result
+
+def prepare_metadata_for_mbtiles(metadata):
+    """Prepare metadata for MBTiles insertion per 1.3 spec.
+    
+    Collects vector_layers and tilestats into a single 'json' metadata row.
+    Returns list of (name, value_string) tuples for insertion.
+    """
+    rows = []
+    json_obj = {}
+    for name, value in metadata.items():
+        if name in ('vector_layers', 'tilestats'):
+            json_obj[name] = value
+            continue
+        if name == 'json':
+            # Already a stringified json row — parse it to merge
+            if isinstance(value, str):
+                try:
+                    parsed = json.loads(value)
+                    if isinstance(parsed, dict):
+                        json_obj.update(parsed)
+                except (json.JSONDecodeError, ValueError):
+                    rows.append((name, value))
+            continue
+        if isinstance(value, (list, dict)):
+            value = json.dumps(value, ensure_ascii=False)
+        rows.append((name, str(value)))
+    if json_obj:
+        rows.append(('json', json.dumps(json_obj, ensure_ascii=False)))
+    return rows
+
 def mbtiles_setup(cur, use_deduplication=False):
     """
     Set up MBTiles database schema.
@@ -178,7 +227,7 @@ def disk_to_mbtiles(directory_path, mbtiles_file, **kwargs):
     try:
         metadata = json.load(open(os.path.join(directory_path, 'metadata.json'), 'r'))
         image_format = kwargs.get('format')
-        for name, value in metadata.items():
+        for name, value in prepare_metadata_for_mbtiles(metadata):
             cur.execute("""INSERT INTO metadata (name, value) VALUES (?, ?)""",
                 (name, value))
         if not silent:
@@ -408,6 +457,7 @@ def mbtiles_metadata_to_disk(mbtiles_file, **kwargs):
         logger.debug("Exporting MBTiles metadata from %s" % (mbtiles_file))
     con = mbtiles_connect(mbtiles_file, silent)
     metadata = dict(con.execute('SELECT name, value FROM metadata;').fetchall())
+    metadata = normalize_metadata(metadata)
     if not silent:
         logger.debug(json.dumps(metadata, indent=2))
 
@@ -421,6 +471,7 @@ def mbtiles_to_disk(mbtiles_file, directory_path, **kwargs):
     os.mkdir("%s" % directory_path)
     
     metadata = dict(con.execute('SELECT name, value FROM metadata;').fetchall())
+    metadata = normalize_metadata(metadata)
     json.dump(metadata, open(os.path.join(directory_path, 'metadata.json'), 'w'), indent=4)
     
     count = con.execute('SELECT count(zoom_level) FROM tiles;').fetchone()[0]
@@ -562,6 +613,52 @@ try:
             
         return format_map.get(str(format_str).lower(), TileType.UNKNOWN)
 
+    def get_tile_ext(header, fallback_format='png'):
+        """Get file extension string from PMTiles header tile_type."""
+        tile_type_map = {
+            TileType.MVT: 'pbf',
+            TileType.PNG: 'png',
+            TileType.JPEG: 'jpg',
+            TileType.WEBP: 'webp',
+        }
+        if hasattr(TileType, 'AVIF'):
+            tile_type_map[TileType.AVIF] = 'avif'
+        if hasattr(TileType, 'MLT'):
+            tile_type_map[TileType.MLT] = 'mlt'
+        val = header.get('tile_type', TileType.UNKNOWN)
+        return tile_type_map.get(val, fallback_format)
+
+    def pmtiles_header_to_metadata(header, metadata, fallback_format='png'):
+        """Populate metadata dict from PMTiles header fields.
+        
+        Mirrors the behavior of getPMtilesInfo in tileserver-gl's pmtiles_adapter.js:
+        - Sets format from tile_type
+        - Sets minzoom/maxzoom from header if not in metadata
+        - Reconstructs bounds from e7 values (with all-zeros check and default fallback)
+        - Reconstructs center (with fallback to maxzoom/2)
+        """
+        metadata['format'] = get_tile_ext(header, fallback_format)
+
+        if 'minzoom' not in metadata and 'min_zoom' in header:
+            metadata['minzoom'] = str(header['min_zoom'])
+        if 'maxzoom' not in metadata and 'max_zoom' in header:
+            metadata['maxzoom'] = str(header['max_zoom'])
+
+        has_bounds = ('min_lon_e7' in header and 'min_lat_e7' in header and
+                      'max_lon_e7' in header and 'max_lat_e7' in header)
+        if has_bounds and not (header['min_lon_e7'] == 0 and header['min_lat_e7'] == 0 and
+                               header['max_lon_e7'] == 0 and header['max_lat_e7'] == 0):
+            metadata['bounds'] = f"{header['min_lon_e7']/10000000},{header['min_lat_e7']/10000000},{header['max_lon_e7']/10000000},{header['max_lat_e7']/10000000}"
+        elif 'bounds' not in metadata:
+            metadata['bounds'] = "-180,-85.05112877980659,180,85.0511287798066"
+
+        if 'center_zoom' in header:
+            metadata['center'] = f"{header.get('center_lon_e7', 0)/10000000},{header.get('center_lat_e7', 0)/10000000},{header['center_zoom']}"
+        elif 'center' not in metadata and 'max_zoom' in header:
+            metadata['center'] = f"{header.get('center_lon_e7', 0)/10000000},{header.get('center_lat_e7', 0)/10000000},{int(header['max_zoom']) // 2}"
+
+        return metadata
+
     def disk_to_pmtiles(directory_path, pmtiles_file, **kwargs):
         silent = kwargs.get('silent')
         if not silent:
@@ -589,6 +686,8 @@ try:
             if os.path.exists(metadata_path):
                 with open(metadata_path, 'r') as f:
                     metadata = json.load(f)
+                    # Normalize: parse 'json' row into top-level keys for PMTiles
+                    metadata = normalize_metadata(metadata)
                 if not silent:
                     logger.info('metadata loaded')
         except IOError:
@@ -732,43 +831,7 @@ try:
             reader = Reader(MmapSource(f))
             header = reader.header()
             metadata = reader.metadata()
-            
-            val = header.get('tile_type', TileType.UNKNOWN)
-            if val == TileType.MVT:
-                file_ext = 'pbf'
-            elif val == TileType.PNG:
-                file_ext = 'png'
-            elif val == TileType.JPEG:
-                file_ext = 'jpg'
-            elif val == TileType.WEBP:
-                file_ext = 'webp'
-            elif hasattr(TileType, 'AVIF') and val == getattr(TileType, 'AVIF'):
-                file_ext = 'avif'
-            elif hasattr(TileType, 'MLT') and val == getattr(TileType, 'MLT'):
-                file_ext = 'mlt'
-            elif 'format' in kwargs: 
-                file_ext = kwargs.get('format', 'png')
-            else:
-                file_ext = 'png'
-
-            metadata['format'] = file_ext
-            if 'minzoom' not in metadata and 'min_zoom' in header:
-                metadata['minzoom'] = str(header['min_zoom'])
-            if 'maxzoom' not in metadata and 'max_zoom' in header:
-                metadata['maxzoom'] = str(header['max_zoom'])
-            
-            has_bounds = ('min_lon_e7' in header and 'min_lat_e7' in header and 
-                          'max_lon_e7' in header and 'max_lat_e7' in header)
-            if has_bounds and not (header['min_lon_e7'] == 0 and header['min_lat_e7'] == 0 and 
-                                   header['max_lon_e7'] == 0 and header['max_lat_e7'] == 0):
-                metadata['bounds'] = f"{header['min_lon_e7']/10000000},{header['min_lat_e7']/10000000},{header['max_lon_e7']/10000000},{header['max_lat_e7']/10000000}"
-            elif 'bounds' not in metadata:
-                metadata['bounds'] = "-180,-85.05112877980659,180,85.0511287798066"
-            
-            if 'center_zoom' in header:
-                metadata['center'] = f"{header.get('center_lon_e7', 0)/10000000},{header.get('center_lat_e7', 0)/10000000},{header['center_zoom']}"
-            elif 'center' not in metadata and 'max_zoom' in header:
-                metadata['center'] = f"{header.get('center_lon_e7', 0)/10000000},{header.get('center_lat_e7', 0)/10000000},{int(header['max_zoom']) // 2}"
+            pmtiles_header_to_metadata(header, metadata, kwargs.get('format', 'png'))
         
         if not silent:
             logger.debug(json.dumps(metadata, indent=2))
@@ -787,45 +850,10 @@ try:
             header = reader.header()
             metadata = reader.metadata()
             
-            val = header.get('tile_type', TileType.UNKNOWN)
-            if val == TileType.MVT:
-                file_ext = 'pbf'
-            elif val == TileType.PNG:
-                file_ext = 'png'
-            elif val == TileType.JPEG:
-                file_ext = 'jpg'
-            elif val == TileType.WEBP:
-                file_ext = 'webp'
-            elif hasattr(TileType, 'AVIF') and val == getattr(TileType, 'AVIF'):
-                file_ext = 'avif'
-            elif hasattr(TileType, 'MLT') and val == getattr(TileType, 'MLT'):
-                file_ext = 'mlt'
-            elif 'format' in kwargs: 
-                file_ext = kwargs.get('format', 'png')
-            else:
-                file_ext = 'png'
+            file_ext = get_tile_ext(header, kwargs.get('format', 'png'))
 
             # Populate metadata with missing standard fields from the PMTiles header
-            metadata['format'] = file_ext
-            if 'minzoom' not in metadata and 'min_zoom' in header:
-                metadata['minzoom'] = str(header['min_zoom'])
-            if 'maxzoom' not in metadata and 'max_zoom' in header:
-                metadata['maxzoom'] = str(header['max_zoom'])
-            
-            # Reconstruct bounds if available
-            has_bounds = ('min_lon_e7' in header and 'min_lat_e7' in header and 
-                          'max_lon_e7' in header and 'max_lat_e7' in header)
-            if has_bounds and not (header['min_lon_e7'] == 0 and header['min_lat_e7'] == 0 and 
-                                   header['max_lon_e7'] == 0 and header['max_lat_e7'] == 0):
-                metadata['bounds'] = f"{header['min_lon_e7']/10000000},{header['min_lat_e7']/10000000},{header['max_lon_e7']/10000000},{header['max_lat_e7']/10000000}"
-            elif 'bounds' not in metadata:
-                metadata['bounds'] = "-180,-85.05112877980659,180,85.0511287798066"
-            
-            # Reconstruct center if available
-            if 'center_zoom' in header:
-                metadata['center'] = f"{header.get('center_lon_e7', 0)/10000000},{header.get('center_lat_e7', 0)/10000000},{header['center_zoom']}"
-            elif 'center' not in metadata and 'max_zoom' in header:
-                metadata['center'] = f"{header.get('center_lon_e7', 0)/10000000},{header.get('center_lat_e7', 0)/10000000},{int(header['max_zoom']) // 2}"
+            pmtiles_header_to_metadata(header, metadata, kwargs.get('format', 'png'))
             
             with open(os.path.join(directory_path, 'metadata.json'), 'w') as md_f:
                 json.dump(metadata, md_f, indent=4)
@@ -893,6 +921,9 @@ try:
             mbtiles_metadata = {}
             for row in cursor.execute("SELECT name,value FROM metadata"):
                 mbtiles_metadata[row[0]] = row[1]
+            
+            # Normalize: parse 'json' row into top-level keys for PMTiles
+            mbtiles_metadata = normalize_metadata(mbtiles_metadata)
                 
             is_pbf = mbtiles_metadata.get("format") in ("pbf", "mvt")
             
@@ -949,51 +980,13 @@ try:
             header = reader.header()
             metadata = reader.metadata()
             
-            val = header.get('tile_type', TileType.UNKNOWN)
-            if val == TileType.MVT:
-                file_ext = 'pbf'
-            elif val == TileType.PNG:
-                file_ext = 'png'
-            elif val == TileType.JPEG:
-                file_ext = 'jpg'
-            elif val == TileType.WEBP:
-                file_ext = 'webp'
-            elif hasattr(TileType, 'AVIF') and val == getattr(TileType, 'AVIF'):
-                file_ext = 'avif'
-            elif hasattr(TileType, 'MLT') and val == getattr(TileType, 'MLT'):
-                file_ext = 'mlt'
-            elif 'format' in kwargs: 
-                file_ext = kwargs.get('format', 'png')
-            else:
-                file_ext = 'png'
+            file_ext = get_tile_ext(header, kwargs.get('format', 'png'))
 
-            metadata['format'] = file_ext
-            if 'minzoom' not in metadata and 'min_zoom' in header:
-                metadata['minzoom'] = str(header['min_zoom'])
-            if 'maxzoom' not in metadata and 'max_zoom' in header:
-                metadata['maxzoom'] = str(header['max_zoom'])
-            
-            has_bounds = ('min_lon_e7' in header and 'min_lat_e7' in header and 
-                          'max_lon_e7' in header and 'max_lat_e7' in header)
-            if has_bounds and not (header['min_lon_e7'] == 0 and header['min_lat_e7'] == 0 and 
-                                   header['max_lon_e7'] == 0 and header['max_lat_e7'] == 0):
-                metadata['bounds'] = f"{header['min_lon_e7']/10000000},{header['min_lat_e7']/10000000},{header['max_lon_e7']/10000000},{header['max_lat_e7']/10000000}"
-                
-            if 'center_zoom' in header:
-                metadata['center'] = f"{header.get('center_lon_e7', 0)/10000000},{header.get('center_lat_e7', 0)/10000000},{header['center_zoom']}"
+            pmtiles_header_to_metadata(header, metadata, kwargs.get('format', 'png'))
 
-            # Insert metadata table, handling vector_layers/tilestats per MBTiles 1.3 spec
-            json_metadata = {}
-            for name, value in metadata.items():
-                if name in ('vector_layers', 'tilestats'):
-                    json_metadata[name] = value
-                    continue
-                if isinstance(value, (list, dict)):
-                    value = json.dumps(value)
-                cur.execute("INSERT INTO metadata (name, value) VALUES (?, ?)", (name, str(value)))
-            if json_metadata:
-                cur.execute("INSERT INTO metadata (name, value) VALUES (?, ?)",
-                    ("json", json.dumps(json_metadata, ensure_ascii=False)))
+            # Insert metadata into MBTiles per 1.3 spec
+            for name, value in prepare_metadata_for_mbtiles(metadata):
+                cur.execute("INSERT INTO metadata (name, value) VALUES (?, ?)", (name, value))
                 
             count = 0
             start_time = time.time()
