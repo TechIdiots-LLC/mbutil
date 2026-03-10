@@ -10,7 +10,11 @@
 import logging, os, sys
 from optparse import OptionParser
 
-from mbutil import mbtiles_to_disk, disk_to_mbtiles, mbtiles_metadata_to_disk, pmtiles_to_disk, disk_to_pmtiles, pmtiles_metadata_to_disk
+from mbutil import (
+    mbtiles_to_disk, disk_to_mbtiles, mbtiles_metadata_to_disk,
+    pmtiles_to_disk, disk_to_pmtiles, pmtiles_metadata_to_disk,
+    mbtiles_to_pmtiles_cmd, pmtiles_to_mbtiles_cmd
+)
 
 if __name__ == '__main__':
 
@@ -20,14 +24,16 @@ if __name__ == '__main__':
     
     Examples:
 
-    Export an mbtiles file to a directory of files:
+    Export an mbtiles or pmtiles file to a directory of files:
     $ mb-util world.mbtiles dumps # when the 2nd argument is "dumps", then dumps the metatdata.json
-
-    Export an mbtiles file to a directory of files:
     $ mb-util world.mbtiles tiles # tiles must not already exist
     
-    Import a directory of tiles into an mbtiles file:
-    $ mb-util tiles world.mbtiles # mbtiles file must not already exist""")
+    Import a directory of tiles into an mbtiles or pmtiles file:
+    $ mb-util tiles world.mbtiles # mbtiles file must not already exist
+    
+    Convert directly between mbtiles and pmtiles archives:
+    $ mb-util world.mbtiles world.pmtiles
+    $ mb-util world.pmtiles world.mbtiles""")
     
     parser.add_option('--scheme', dest='scheme',
         help='''Tiling scheme of the tiles. Default is "xyz" (z/x/y), other options '''
@@ -79,6 +85,16 @@ if __name__ == '__main__':
     if os.path.isfile(args[0]) and os.path.exists(args[1]):
         sys.stderr.write('To export MBTiles or PMTiles to disk, specify a directory that does not yet exist\n')
         sys.exit(1)
+        
+    if os.path.isfile(args[0]) and not os.path.exists(args[1]) and args[1].endswith('.pmtiles') and args[0].endswith('.mbtiles'):
+        mbtiles_file, pmtiles_file = args
+        mbtiles_to_pmtiles_cmd(mbtiles_file, pmtiles_file, **options.__dict__)
+        sys.exit(0)
+        
+    if os.path.isfile(args[0]) and not os.path.exists(args[1]) and args[1].endswith('.mbtiles') and args[0].endswith('.pmtiles'):
+        pmtiles_file, mbtiles_file = args
+        pmtiles_to_mbtiles_cmd(pmtiles_file, mbtiles_file, **options.__dict__)
+        sys.exit(0)
     
     # to disk
     if os.path.isfile(args[0]) and args[1]=="dumps":

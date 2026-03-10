@@ -870,11 +870,183 @@ try:
                 done += 1
                 if not silent and (done % 100 == 0 or done == count):
                     logger.info('%s / %s tiles exported' % (done, count))
+
+    def mbtiles_to_pmtiles_cmd(mbtiles_file, pmtiles_file, **kwargs):
+        silent = kwargs.get('silent')
+        if not silent:
+            logger.info("Converting MBTiles to PMTiles")
+            logger.debug("%s --> %s" % (mbtiles_file, pmtiles_file))
+            
+        con = mbtiles_connect(mbtiles_file, silent)
+        cursor = con.cursor()
+        
+        with write(pmtiles_file) as writer:
+            tileid_set = []
+            for row in cursor.execute("SELECT zoom_level,tile_column,tile_row FROM tiles"):
+                flipped = flip_y(row[0], row[2])
+                tileid_set.append(zxy_to_tileid(row[0], row[1], flipped))
+                
+            tileid_set.sort()
+            
+            mbtiles_metadata = {}
+            for row in cursor.execute("SELECT name,value FROM metadata"):
+                mbtiles_metadata[row[0]] = row[1]
+                
+            is_pbf = mbtiles_metadata.get("format") in ("pbf", "mvt")
+            
+            count = 0
+            start_time = time.time()
+            total_tiles = len(tileid_set)
+            
+            from pmtiles.convert import mbtiles_to_header_json
+            pmtiles_header, pmtiles_metadata_dict = mbtiles_to_header_json(mbtiles_metadata)
+            
+            for tileid in tileid_set:
+                z, x, y = tileid_to_zxy(tileid)
+                flipped = flip_y(z, y)
+                res = cursor.execute(
+                    "SELECT tile_data FROM tiles WHERE zoom_level = ? AND tile_column = ? AND tile_row = ?",
+                    (z, x, flipped),
+                )
+                data = res.fetchone()[0]
+                
+                # force gzip compression only for vector
+                if is_pbf and data[0:2] != b"\x1f\x8b":
+                    import gzip
+                    data = gzip.compress(data)
+                    
+                writer.write_tile(tileid, data)
+                
+                count += 1
+                if count % 1000 == 0 and not silent:
+                    elapsed = time.time() - start_time
+                    rate = count / elapsed if elapsed > 0 else 0
+                    logger.info(" %s / %s tiles processed (%d tiles/sec)" % (count, total_tiles, rate))
+                    
+            writer.finalize(pmtiles_header, pmtiles_metadata_dict)
+            
+        con.close()
+        if not silent:
+            logger.info("Conversion complete: %d tiles exported" % count)
+
+    def pmtiles_to_mbtiles_cmd(pmtiles_file, mbtiles_file, **kwargs):
+        silent = kwargs.get('silent')
+        use_compression = kwargs.get('compression', False)
+        hash_type = kwargs.get('hash_type', 'fnv1a')
+        
+        if not silent:
+            logger.info("Converting PMTiles to MBTiles")
+            logger.debug("%s --> %s" % (pmtiles_file, mbtiles_file))
+            
+        con = mbtiles_connect(mbtiles_file, silent)
+        cur = con.cursor()
+        optimize_connection(cur)
+        mbtiles_setup(cur, use_deduplication=use_compression)
+        
+        with open(pmtiles_file, 'rb') as f:
+            reader = Reader(MmapSource(f))
+            header = reader.header()
+            metadata = reader.metadata()
+            
+            val = header.get('tile_type', TileType.UNKNOWN)
+            if val == TileType.MVT:
+                file_ext = 'pbf'
+            elif val == TileType.PNG:
+                file_ext = 'png'
+            elif val == TileType.JPEG:
+                file_ext = 'jpg'
+            elif val == TileType.WEBP:
+                file_ext = 'webp'
+            elif hasattr(TileType, 'AVIF') and val == getattr(TileType, 'AVIF'):
+                file_ext = 'avif'
+            elif hasattr(TileType, 'MLT') and val == getattr(TileType, 'MLT'):
+                file_ext = 'mlt'
+            elif 'format' in kwargs: 
+                file_ext = kwargs.get('format', 'png')
+            else:
+                file_ext = 'png'
+
+            metadata['format'] = file_ext
+            if 'minzoom' not in metadata and 'min_zoom' in header:
+                metadata['minzoom'] = str(header['min_zoom'])
+            if 'maxzoom' not in metadata and 'max_zoom' in header:
+                metadata['maxzoom'] = str(header['max_zoom'])
+            
+            has_bounds = ('min_lon_e7' in header and 'min_lat_e7' in header and 
+                          'max_lon_e7' in header and 'max_lat_e7' in header)
+            if has_bounds and not (header['min_lon_e7'] == 0 and header['min_lat_e7'] == 0 and 
+                                   header['max_lon_e7'] == 0 and header['max_lat_e7'] == 0):
+                metadata['bounds'] = f"{header['min_lon_e7']/10000000},{header['min_lat_e7']/10000000},{header['max_lon_e7']/10000000},{header['max_lat_e7']/10000000}"
+                
+            if 'center_zoom' in header:
+                metadata['center'] = f"{header.get('center_lon_e7', 0)/10000000},{header.get('center_lat_e7', 0)/10000000},{header['center_zoom']}"
+
+            # Insert metadata table
+            for name, value in metadata.items():
+                if isinstance(value, (list, dict)):
+                    value = json.dumps(value)
+                cur.execute("INSERT INTO metadata (name, value) VALUES (?, ?)", (name, str(value)))
+                
+            count = 0
+            start_time = time.time()
+            total_tiles = header['addressed_tiles_count']
+            
+            BATCH_SIZE = 1000
+            tile_data_batch = []
+            tile_shallow_batch = []
+            simple_tile_batch = []
+            
+            def flush_batches():
+                nonlocal tile_data_batch, tile_shallow_batch, simple_tile_batch
+                if use_compression:
+                    if tile_data_batch:
+                        cur.executemany("INSERT OR IGNORE INTO tiles_data (tile_data_id, tile_data) VALUES (?, ?);", tile_data_batch)
+                        tile_data_batch = []
+                    if tile_shallow_batch:
+                        cur.executemany("INSERT INTO tiles_shallow (TILES_COL_Z, TILES_COL_X, TILES_COL_Y, TILES_COL_DATA_ID) VALUES (?, ?, ?, ?);", tile_shallow_batch)
+                        tile_shallow_batch = []
+                else:
+                    if simple_tile_batch:
+                        cur.executemany("INSERT INTO tiles (zoom_level, tile_column, tile_row, tile_data) VALUES (?, ?, ?, ?);", simple_tile_batch)
+                        simple_tile_batch = []
+                con.commit()
+                
+            for (z, x, y), tile_data in all_tiles(reader.get_bytes):
+                # MBTiles stores Y bottom-up
+                mbt_y = flip_y(z, y)
+                
+                if use_compression:
+                    tile_hash = get_tile_hash(tile_data, hash_type)
+                    tile_data_batch.append((tile_hash, sqlite3.Binary(tile_data)))
+                    tile_shallow_batch.append((z, x, mbt_y, tile_hash))
+                else:
+                    simple_tile_batch.append((z, x, mbt_y, sqlite3.Binary(tile_data)))
+                    
+                count += 1
+                if count % BATCH_SIZE == 0:
+                    flush_batches()
+                    if not silent:
+                        elapsed = time.time() - start_time
+                        rate = count / elapsed if elapsed > 0 else 0
+                        logger.info(" %s / %s tiles processed (%d tiles/sec)" % (count, total_tiles, rate))
+                        
+            flush_batches()
+            
+            if not silent:
+                logger.debug('Tiles inserted.')
+                logger.info("Import complete:")
+                logger.info(" Total tiles: %d" % count)
+                    
+        optimize_database(con, silent)
 except ImportError:
     def disk_to_pmtiles(*args, **kwargs):
         raise NotImplementedError("PMTiles support not installed/found.")
     def pmtiles_to_disk(*args, **kwargs):
         raise NotImplementedError("PMTiles support not installed/found.")
     def pmtiles_metadata_to_disk(*args, **kwargs):
+        raise NotImplementedError("PMTiles support not installed/found.")
+    def mbtiles_to_pmtiles_cmd(*args, **kwargs):
+        raise NotImplementedError("PMTiles support not installed/found.")
+    def pmtiles_to_mbtiles_cmd(*args, **kwargs):
         raise NotImplementedError("PMTiles support not installed/found.")
 

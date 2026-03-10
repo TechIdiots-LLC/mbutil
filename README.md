@@ -1,15 +1,17 @@
 # MBUtil
 
-MBUtil is a utility for importing and exporting the [MBTiles](http://mbtiles.org/) format.
+MBUtil is a utility for importing and exporting the [MBTiles](http://mbtiles.org/) format, the [PMTiles](https://protomaps.com/docs/pmtiles) format, or converting between them.
 
 ## Installation
 
 Git checkout (requires git)
 
-    git clone https://github.com/acalcutt/mbutil.git
+    git clone --recursive https://github.com/acalcutt/mbutil.git
     cd mbutil
     # get usage
     ./mb-util -h
+
+*(Note: the `--recursive` flag is required. If already cloned, run `git submodule update --init` in the folder).*
 
 Then to install the mb-util command globally:
 
@@ -23,11 +25,16 @@ Then to install the mb-util command globally:
     Usage: mb-util [options] input output
 
     Examples:
-        Export an mbtiles file to a directory of files:
-        $ mb-util world.mbtiles tiles # tiles must not already exist
+        Export an mbtiles or pmtiles file to a directory of files:
+        $ mb-util world.mbtiles dumps # when the 2nd argument is "dumps", then dumps the metatdata.json
+        $ mb-util world.pmtiles tiles # tiles must not already exist
 
-        Import a directory of tiles into an mbtiles file:
-        $ mb-util tiles world.mbtiles # mbtiles file must not already exist
+        Import a directory of tiles into an mbtiles or pmtiles file:
+        $ mb-util tiles world.mbtiles # file must not already exist
+
+        Convert directly between mbtiles and pmtiles archives:
+        $ mb-util world.mbtiles world.pmtiles
+        $ mb-util world.pmtiles world.mbtiles
 
     Options:
       -h, --help            Show this help message and exit
@@ -39,7 +46,7 @@ Then to install the mb-util command globally:
                             vips dzsave --layout google uses, "ags" for ArcGIS Server,
                             and "gwc" for GeoWebCache.
       --image_format=FORMAT
-                            The format of the image tiles, either png, jpg, webp or pbf
+                            The format of the image tiles: png, jpg, webp, pbf, mlt, or mvt
       --grid_callback=CALLBACK
                             Option to control JSONP callback for UTFGrid tiles. If
                             grids are not used as JSONP, you can
@@ -55,15 +62,26 @@ Then to install the mb-util command globally:
 
 ## Examples
 
-Export an `mbtiles` file to files on the filesystem:
+Export an `mbtiles` or `pmtiles` file to files on the filesystem:
 
     mb-util World_Light.mbtiles adirectory
+    mb-util World_Light.pmtiles anotherdirectory
 
-Import a directory into a `mbtiles` file:
+Import a directory into a `mbtiles` or `pmtiles` file:
 
     mb-util directory World_Light.mbtiles
+    mb-util directory World_Light.pmtiles
 
-Import with tile deduplication (reduces file size):
+Directly convert between formats:
+
+    mb-util archive.mbtiles new_archive.pmtiles
+    mb-util input.pmtiles output.mbtiles
+
+Dump archive metadata to the terminal:
+    
+    mb-util World_Light.pmtiles dumps
+
+Import with tile deduplication (reduces file size for MBTiles):
 
     mb-util --do_compression tiles World_Light.mbtiles
 
