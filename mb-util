@@ -10,7 +10,7 @@
 import logging, os, sys
 from optparse import OptionParser
 
-from mbutil import mbtiles_to_disk, disk_to_mbtiles, mbtiles_metadata_to_disk
+from mbutil import mbtiles_to_disk, disk_to_mbtiles, mbtiles_metadata_to_disk, pmtiles_to_disk, disk_to_pmtiles, pmtiles_metadata_to_disk
 
 if __name__ == '__main__':
 
@@ -77,24 +77,38 @@ if __name__ == '__main__':
         sys.exit(1)
 
     if os.path.isfile(args[0]) and os.path.exists(args[1]):
-        sys.stderr.write('To export MBTiles to disk, specify a directory that does not yet exist\n')
+        sys.stderr.write('To export MBTiles or PMTiles to disk, specify a directory that does not yet exist\n')
         sys.exit(1)
     
     # to disk
     if os.path.isfile(args[0]) and args[1]=="dumps":
-        mbtiles_file, dumps = args
-        mbtiles_metadata_to_disk(mbtiles_file, **options.__dict__)
-        sys.exit(1)
+        if args[0].endswith('.pmtiles'):
+            pmtiles_file, dumps = args
+            pmtiles_metadata_to_disk(pmtiles_file, **options.__dict__)
+            sys.exit(0)
+        else:
+            mbtiles_file, dumps = args
+            mbtiles_metadata_to_disk(mbtiles_file, **options.__dict__)
+            sys.exit(1)
 
     if os.path.isfile(args[0]) and not os.path.exists(args[1]):
-        mbtiles_file, directory_path = args
-        mbtiles_to_disk(mbtiles_file, directory_path, **options.__dict__)
+        file_path, directory_path = args
+        if file_path.endswith('.pmtiles'):
+            pmtiles_to_disk(file_path, directory_path, **options.__dict__)
+        else:
+            mbtiles_to_disk(file_path, directory_path, **options.__dict__)
+        sys.exit(0)
 
     if os.path.isdir(args[0]) and os.path.isfile(args[1]):
-        sys.stderr.write('Importing tiles into already-existing MBTiles is not yet supported\n')
+        sys.stderr.write('Importing tiles into already-existing file is not yet supported\n')
         sys.exit(1)
     
-    # to mbtiles
-    if os.path.isdir(args[0]) and not os.path.isfile(args[0]):
-        directory_path, mbtiles_file = args
-        disk_to_mbtiles(directory_path, mbtiles_file, **options.__dict__)
+    # to archive
+    if os.path.isdir(args[0]) and not os.path.isfile(args[1]):
+        directory_path, file_path = args
+        if file_path.endswith('.pmtiles'):
+            disk_to_pmtiles(directory_path, file_path, **options.__dict__)
+        else:
+            disk_to_mbtiles(directory_path, file_path, **options.__dict__)
+        sys.exit(0)
+

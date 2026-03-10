@@ -296,7 +296,11 @@ def disk_to_mbtiles(directory_path, mbtiles_file, **kwargs):
                 else:
                     y = int(file_name)
 
-                if ext == image_format:
+                valid_exts = (image_format,)
+                if image_format in ('pbf', 'mvt'):
+                    valid_exts = ('pbf', 'mvt')
+
+                if ext in valid_exts:
                     if not silent and count < 10:  # Only log first 10 for debugging
                         logger.debug(' Read tile from Zoom (z): %i\tCol (x): %i\tRow (y): %i' % (z, x, y))
                     
@@ -529,3 +533,348 @@ def mbtiles_to_disk(mbtiles_file, directory_path, **kwargs):
             logger.info('%s / %s grids exported' % (done, count))
         
         g = grids.fetchone()
+
+try:
+    import sys
+    import os
+    _pmtiles_path = os.path.abspath(os.path.join(os.path.dirname(__file__), '..', 'PMTiles', 'python', 'pmtiles'))
+    if _pmtiles_path not in sys.path:
+        sys.path.append(_pmtiles_path)
+        
+    from pmtiles.writer import write
+    from pmtiles.reader import Reader, MmapSource, all_tiles
+    from pmtiles.tile import zxy_to_tileid, tileid_to_zxy, Compression, TileType
+
+    def get_tile_type(format_str):
+        """Map file format to PMTiles TileType."""
+        format_map = {
+            'png': TileType.PNG,
+            'jpeg': TileType.JPEG,
+            'jpg': TileType.JPEG,
+            'webp': TileType.WEBP,
+            'mvt': TileType.MVT,
+            'pbf': TileType.MVT,
+        }
+        if hasattr(TileType, 'AVIF'):
+            format_map['avif'] = TileType.AVIF
+        if hasattr(TileType, 'MLT'):
+            format_map['mlt'] = TileType.MLT
+            
+        return format_map.get(str(format_str).lower(), TileType.UNKNOWN)
+
+    def disk_to_pmtiles(directory_path, pmtiles_file, **kwargs):
+        silent = kwargs.get('silent')
+        if not silent:
+            logger.info("Importing disk to PMTiles")
+            logger.debug("%s --> %s" % (directory_path, pmtiles_file))
+
+        image_format = kwargs.get('format', 'png')
+        tile_type = get_tile_type(image_format)
+
+        stats = {
+            'total_tiles': 0,
+            'total_size': 0,
+            'min_zoom': None,
+            'max_zoom': None,
+        }
+
+        count = 0
+        start_time = time.time()
+        
+        tiles_to_process = []
+        
+        metadata = {}
+        try:
+            metadata_path = os.path.join(directory_path, 'metadata.json')
+            if os.path.exists(metadata_path):
+                with open(metadata_path, 'r') as f:
+                    metadata = json.load(f)
+                if not silent:
+                    logger.info('metadata loaded')
+        except IOError:
+            if not silent:
+                logger.warning('metadata.json not found')
+
+        # Process files
+        for zoom_dir in get_dirs(directory_path):
+            if kwargs.get("scheme") == 'ags':
+                if "L" not in zoom_dir and not silent:
+                    logger.warning("You appear to be using an ags scheme on a non-arcgis Server cache.")
+                z = int(zoom_dir.replace("L", ""))
+            elif kwargs.get("scheme") == 'gwc':
+                z = int(zoom_dir[-2:])
+            else:
+                if "L" in zoom_dir and not silent:
+                    logger.warning("You appear to be using a %s scheme on an arcgis Server cache. Try using --scheme=ags instead" % kwargs.get("scheme"))
+                z = int(zoom_dir)
+                
+            if stats['min_zoom'] is None or z < stats['min_zoom']:
+                stats['min_zoom'] = z
+            if stats['max_zoom'] is None or z > stats['max_zoom']:
+                stats['max_zoom'] = z
+                
+            for row_dir in get_dirs(os.path.join(directory_path, zoom_dir)):
+                if kwargs.get("scheme") == 'ags':
+                    y_disk = int(row_dir.replace("R", ""), 16)
+                    y = flip_y(z, y_disk)
+                elif kwargs.get("scheme") == 'gwc':
+                    y = None # determined by filename
+                elif kwargs.get("scheme") == 'zyx':
+                    y = flip_y(int(z), int(row_dir))
+                else:
+                    x = int(row_dir)
+                    
+                for current_file in os.listdir(os.path.join(directory_path, zoom_dir, row_dir)):
+                    if current_file == ".DS_Store":
+                        if not silent:
+                            logger.warning("Your OS is MacOS, and the .DS_Store file will be ignored.")
+                        continue
+                        
+                    parts = current_file.split('.', 1)
+                    if len(parts) != 2:
+                        continue
+                    file_name, ext = parts
+                    
+                    if kwargs.get('scheme') == 'xyz':
+                        y = flip_y(int(z), int(file_name))
+                    elif kwargs.get("scheme") == 'ags':
+                        x = int(file_name.replace("C", ""), 16)
+                    elif kwargs.get("scheme") == 'gwc':
+                        x_str, y_str = file_name.split('_')
+                        x = int(x_str)
+                        y = int(y_str)
+                    elif kwargs.get("scheme") == 'zyx':
+                        x = int(file_name)
+                    else:
+                        y = int(file_name)
+
+                    valid_exts = [image_format]
+                    if image_format in ('pbf', 'mvt'):
+                        valid_exts = ['pbf', 'mvt']
+                    elif image_format in ('jpg', 'jpeg'):
+                        valid_exts = ['jpg', 'jpeg']
+
+                    if ext in valid_exts:
+                        tileid = zxy_to_tileid(z, x, y)
+                        file_path = os.path.join(directory_path, zoom_dir, row_dir, current_file)
+                        tiles_to_process.append((tileid, file_path))
+                        stats['total_tiles'] += 1
+
+        tiles_to_process.sort(key=lambda item: item[0])
+
+        with write(pmtiles_file) as writer:
+            for tileid, file_path in tiles_to_process:
+                with open(file_path, 'rb') as f:
+                    file_content = f.read()
+                writer.write_tile(tileid, file_content)
+                stats['total_size'] += len(file_content)
+                
+                count += 1
+                if count % 1000 == 0 and not silent:
+                    elapsed = time.time() - start_time
+                    rate = count / elapsed if elapsed > 0 else 0
+                    logger.info(" %s tiles processed (%d tiles/sec)" % (count, rate))
+            
+            header = {
+                'tile_type': tile_type,
+                'tile_compression': Compression.UNKNOWN,
+                'min_zoom': stats['min_zoom'] if stats['min_zoom'] is not None else 0,
+                'max_zoom': stats['max_zoom'] if stats['max_zoom'] is not None else 0,
+            }
+            
+            if 'bounds' in metadata:
+                try:
+                    b_str = metadata['bounds']
+                    if isinstance(b_str, str):
+                        bounds = [float(val) for val in b_str.split(',')]
+                    else:
+                        bounds = b_str
+                    if len(bounds) >= 4:
+                        header['min_lon_e7'] = int(bounds[0] * 10000000)
+                        header['min_lat_e7'] = int(bounds[1] * 10000000)
+                        header['max_lon_e7'] = int(bounds[2] * 10000000)
+                        header['max_lat_e7'] = int(bounds[3] * 10000000)
+                except Exception as e:
+                    if not silent: logger.warning("Could not parse bounds: %s", e)
+            else:
+                header['min_lon_e7'] = int(-180 * 10000000)
+                header['min_lat_e7'] = int(-85 * 10000000)
+                header['max_lon_e7'] = int(180 * 10000000)
+                header['max_lat_e7'] = int(85 * 10000000)
+            
+            if 'center' in metadata:
+                try:
+                    c_str = metadata['center']
+                    if isinstance(c_str, str):
+                        center = [float(val) for val in c_str.split(',')]
+                    else:
+                        center = c_str
+                    if len(center) >= 3:
+                        header['center_lon_e7'] = int(center[0] * 10000000)
+                        header['center_lat_e7'] = int(center[1] * 10000000)
+                        header['center_zoom'] = int(center[2])
+                except Exception as e:
+                    if not silent: logger.warning("Could not parse center: %s", e)
+            
+            writer.finalize(header, metadata)
+
+        if not silent:
+            logger.info("Import complete:")
+            logger.info(" Total tiles: %d" % stats['total_tiles'])
+
+    def pmtiles_metadata_to_disk(pmtiles_file, **kwargs):
+        silent = kwargs.get('silent')
+        if not silent:
+            logger.debug("Exporting PMTiles metadata from %s" % (pmtiles_file))
+        
+        with open(pmtiles_file, 'rb') as f:
+            reader = Reader(MmapSource(f))
+            header = reader.header()
+            metadata = reader.metadata()
+            
+            val = header.get('tile_type', TileType.UNKNOWN)
+            if val == TileType.MVT:
+                file_ext = 'pbf'
+            elif val == TileType.PNG:
+                file_ext = 'png'
+            elif val == TileType.JPEG:
+                file_ext = 'jpg'
+            elif val == TileType.WEBP:
+                file_ext = 'webp'
+            elif hasattr(TileType, 'AVIF') and val == getattr(TileType, 'AVIF'):
+                file_ext = 'avif'
+            elif hasattr(TileType, 'MLT') and val == getattr(TileType, 'MLT'):
+                file_ext = 'mlt'
+            elif 'format' in kwargs: 
+                file_ext = kwargs.get('format', 'png')
+            else:
+                file_ext = 'png'
+
+            metadata['format'] = file_ext
+            if 'minzoom' not in metadata and 'min_zoom' in header:
+                metadata['minzoom'] = str(header['min_zoom'])
+            if 'maxzoom' not in metadata and 'max_zoom' in header:
+                metadata['maxzoom'] = str(header['max_zoom'])
+            
+            has_bounds = ('min_lon_e7' in header and 'min_lat_e7' in header and 
+                          'max_lon_e7' in header and 'max_lat_e7' in header)
+            if has_bounds and not (header['min_lon_e7'] == 0 and header['min_lat_e7'] == 0 and 
+                                   header['max_lon_e7'] == 0 and header['max_lat_e7'] == 0):
+                metadata['bounds'] = f"{header['min_lon_e7']/10000000},{header['min_lat_e7']/10000000},{header['max_lon_e7']/10000000},{header['max_lat_e7']/10000000}"
+            elif 'bounds' not in metadata:
+                metadata['bounds'] = "-180,-85.05112877980659,180,85.0511287798066"
+            
+            if 'center_zoom' in header:
+                metadata['center'] = f"{header.get('center_lon_e7', 0)/10000000},{header.get('center_lat_e7', 0)/10000000},{header['center_zoom']}"
+            elif 'center' not in metadata and 'max_zoom' in header:
+                metadata['center'] = f"{header.get('center_lon_e7', 0)/10000000},{header.get('center_lat_e7', 0)/10000000},{int(header['max_zoom']) // 2}"
+        
+        if not silent:
+            logger.debug(json.dumps(metadata, indent=2))
+
+    def pmtiles_to_disk(pmtiles_file, directory_path, **kwargs):
+        silent = kwargs.get('silent')
+        if not silent:
+            logger.debug("Exporting PMTiles to disk")
+            logger.debug("%s --> %s" % (pmtiles_file, directory_path))
+        
+        if not os.path.isdir(directory_path):
+            os.makedirs(directory_path)
+
+        with open(pmtiles_file, 'rb') as f:
+            reader = Reader(MmapSource(f))
+            header = reader.header()
+            metadata = reader.metadata()
+            
+            val = header.get('tile_type', TileType.UNKNOWN)
+            if val == TileType.MVT:
+                file_ext = 'pbf'
+            elif val == TileType.PNG:
+                file_ext = 'png'
+            elif val == TileType.JPEG:
+                file_ext = 'jpg'
+            elif val == TileType.WEBP:
+                file_ext = 'webp'
+            elif hasattr(TileType, 'AVIF') and val == getattr(TileType, 'AVIF'):
+                file_ext = 'avif'
+            elif hasattr(TileType, 'MLT') and val == getattr(TileType, 'MLT'):
+                file_ext = 'mlt'
+            elif 'format' in kwargs: 
+                file_ext = kwargs.get('format', 'png')
+            else:
+                file_ext = 'png'
+
+            # Populate metadata with missing standard fields from the PMTiles header
+            metadata['format'] = file_ext
+            if 'minzoom' not in metadata and 'min_zoom' in header:
+                metadata['minzoom'] = str(header['min_zoom'])
+            if 'maxzoom' not in metadata and 'max_zoom' in header:
+                metadata['maxzoom'] = str(header['max_zoom'])
+            
+            # Reconstruct bounds if available
+            has_bounds = ('min_lon_e7' in header and 'min_lat_e7' in header and 
+                          'max_lon_e7' in header and 'max_lat_e7' in header)
+            if has_bounds and not (header['min_lon_e7'] == 0 and header['min_lat_e7'] == 0 and 
+                                   header['max_lon_e7'] == 0 and header['max_lat_e7'] == 0):
+                metadata['bounds'] = f"{header['min_lon_e7']/10000000},{header['min_lat_e7']/10000000},{header['max_lon_e7']/10000000},{header['max_lat_e7']/10000000}"
+            elif 'bounds' not in metadata:
+                metadata['bounds'] = "-180,-85.05112877980659,180,85.0511287798066"
+            
+            # Reconstruct center if available
+            if 'center_zoom' in header:
+                metadata['center'] = f"{header.get('center_lon_e7', 0)/10000000},{header.get('center_lat_e7', 0)/10000000},{header['center_zoom']}"
+            elif 'center' not in metadata and 'max_zoom' in header:
+                metadata['center'] = f"{header.get('center_lon_e7', 0)/10000000},{header.get('center_lat_e7', 0)/10000000},{int(header['max_zoom']) // 2}"
+            
+            with open(os.path.join(directory_path, 'metadata.json'), 'w') as md_f:
+                json.dump(metadata, md_f, indent=4)
+            
+            count = header['addressed_tiles_count']
+            done = 0
+            base_path = directory_path
+            
+            formatter = metadata.get('formatter')
+            if formatter:
+                layer_json = os.path.join(base_path, 'layer.json')
+                with open(layer_json, 'w') as l_f:
+                    l_f.write(json.dumps({"formatter": formatter}))
+
+            for (z, x, y), tile_data in all_tiles(reader.get_bytes):
+                if kwargs.get('scheme') == 'xyz':
+                    y_export = flip_y(z, y)
+                    tile_dir = os.path.join(base_path, str(z), str(x))
+                elif kwargs.get('scheme') == 'wms':
+                    tile_dir = os.path.join(base_path,
+                        "%02d" % (z),
+                        "%03d" % (int(x) // 1000000),
+                        "%03d" % ((int(x) // 1000) % 1000),
+                        "%03d" % (int(x) % 1000),
+                        "%03d" % (int(y) // 1000000),
+                        "%03d" % ((int(y) // 1000) % 1000))
+                    y_export = y
+                else:
+                    tile_dir = os.path.join(base_path, str(z), str(x))
+                    y_export = y
+                
+                if not os.path.isdir(tile_dir):
+                    os.makedirs(tile_dir)
+                
+                if kwargs.get('scheme') == 'wms':
+                    tile = os.path.join(tile_dir, '%03d.%s' % (int(y_export) % 1000, file_ext))
+                else:
+                    tile = os.path.join(tile_dir, '%s.%s' % (y_export, file_ext))
+                
+                with open(tile, 'wb') as t_f:
+                    t_f.write(tile_data)
+                
+                done += 1
+                if not silent and (done % 100 == 0 or done == count):
+                    logger.info('%s / %s tiles exported' % (done, count))
+except ImportError:
+    def disk_to_pmtiles(*args, **kwargs):
+        raise NotImplementedError("PMTiles support not installed/found.")
+    def pmtiles_to_disk(*args, **kwargs):
+        raise NotImplementedError("PMTiles support not installed/found.")
+    def pmtiles_metadata_to_disk(*args, **kwargs):
+        raise NotImplementedError("PMTiles support not installed/found.")
+
