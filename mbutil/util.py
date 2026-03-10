@@ -9,7 +9,7 @@
 # for additional reference on schema see:
 # https://github.com/mapbox/node-mbtiles/blob/master/lib/schema.sql
 
-import sqlite3, sys, logging, time, os, json, zlib, re, hashlib
+import sqlite3, sys, logging, time, os, json, zlib, gzip, re, hashlib
 
 logger = logging.getLogger(__name__)
 
@@ -655,7 +655,8 @@ try:
                         valid_exts = ['jpg', 'jpeg']
 
                     if ext in valid_exts:
-                        tileid = zxy_to_tileid(z, x, y)
+                        pmtiles_y = flip_y(z, y)  # TMS y -> XYZ y for PMTiles
+                        tileid = zxy_to_tileid(z, x, pmtiles_y)
                         file_path = os.path.join(directory_path, zoom_dir, row_dir, current_file)
                         tiles_to_process.append((tileid, file_path))
                         stats['total_tiles'] += 1
@@ -677,7 +678,7 @@ try:
             
             header = {
                 'tile_type': tile_type,
-                'tile_compression': Compression.UNKNOWN,
+                'tile_compression': Compression.GZIP if image_format in ('pbf', 'mvt') else Compression.NONE,
                 'min_zoom': stats['min_zoom'] if stats['min_zoom'] is not None else 0,
                 'max_zoom': stats['max_zoom'] if stats['max_zoom'] is not None else 0,
             }
@@ -840,21 +841,22 @@ try:
                     l_f.write(json.dumps({"formatter": formatter}))
 
             for (z, x, y), tile_data in all_tiles(reader.get_bytes):
+                # all_tiles returns XYZ y; convert to TMS for default scheme
                 if kwargs.get('scheme') == 'xyz':
-                    y_export = flip_y(z, y)
+                    y_export = y  # already XYZ
                     tile_dir = os.path.join(base_path, str(z), str(x))
                 elif kwargs.get('scheme') == 'wms':
+                    y_export = flip_y(z, y)  # XYZ -> TMS
                     tile_dir = os.path.join(base_path,
                         "%02d" % (z),
                         "%03d" % (int(x) // 1000000),
                         "%03d" % ((int(x) // 1000) % 1000),
                         "%03d" % (int(x) % 1000),
-                        "%03d" % (int(y) // 1000000),
-                        "%03d" % ((int(y) // 1000) % 1000))
-                    y_export = y
+                        "%03d" % (int(y_export) // 1000000),
+                        "%03d" % ((int(y_export) // 1000) % 1000))
                 else:
+                    y_export = flip_y(z, y)  # XYZ -> TMS
                     tile_dir = os.path.join(base_path, str(z), str(x))
-                    y_export = y
                 
                 if not os.path.isdir(tile_dir):
                     os.makedirs(tile_dir)
@@ -912,7 +914,6 @@ try:
                 
                 # force gzip compression only for vector
                 if is_pbf and data[0:2] != b"\x1f\x8b":
-                    import gzip
                     data = gzip.compress(data)
                     
                 writer.write_tile(tileid, data)
@@ -981,11 +982,18 @@ try:
             if 'center_zoom' in header:
                 metadata['center'] = f"{header.get('center_lon_e7', 0)/10000000},{header.get('center_lat_e7', 0)/10000000},{header['center_zoom']}"
 
-            # Insert metadata table
+            # Insert metadata table, handling vector_layers/tilestats per MBTiles 1.3 spec
+            json_metadata = {}
             for name, value in metadata.items():
+                if name in ('vector_layers', 'tilestats'):
+                    json_metadata[name] = value
+                    continue
                 if isinstance(value, (list, dict)):
                     value = json.dumps(value)
                 cur.execute("INSERT INTO metadata (name, value) VALUES (?, ?)", (name, str(value)))
+            if json_metadata:
+                cur.execute("INSERT INTO metadata (name, value) VALUES (?, ?)",
+                    ("json", json.dumps(json_metadata, ensure_ascii=False)))
                 
             count = 0
             start_time = time.time()
