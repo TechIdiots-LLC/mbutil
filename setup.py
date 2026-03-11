@@ -2,7 +2,7 @@ from setuptools import setup
 
 setup(
     name='mbutil',
-    version='0.4.0',
+    version='0.4.1',
     author='Andrew Calcutt',
     author_email='info@techidiots.net',
     packages=['mbutil'],
