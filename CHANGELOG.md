@@ -1,5 +1,12 @@
 # Changelog
 
+## master
+### ✨ Features and improvements
+- _...Add new stuff here..._
+
+### 🐞 Bug fixes
+- _...Add new stuff here..._
+
 ## 0.4.0
 
 ### Added
