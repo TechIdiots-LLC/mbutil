@@ -956,14 +956,27 @@ try:
             if 'center' not in mbtiles_metadata:
                 pmtiles_header['center_zoom'] = (pmtiles_header['min_zoom'] + pmtiles_header['max_zoom']) // 2
             
+            errors = 0
             for tileid in tileid_set:
                 z, x, y = tileid_to_zxy(tileid)
                 flipped = flip_y(z, y)
-                res = cursor.execute(
-                    "SELECT tile_data FROM tiles WHERE zoom_level = ? AND tile_column = ? AND tile_row = ?",
-                    (z, x, flipped),
-                )
-                data = res.fetchone()[0]
+                try:
+                    res = cursor.execute(
+                        "SELECT tile_data FROM tiles WHERE zoom_level = ? AND tile_column = ? AND tile_row = ?",
+                        (z, x, flipped),
+                    )
+                    row = res.fetchone()
+                    if row is None:
+                        if not silent:
+                            logger.warning("Tile not found: z=%s x=%s y=%s (tms_y=%s)" % (z, x, y, flipped))
+                        errors += 1
+                        continue
+                    data = row[0]
+                except sqlite3.DatabaseError as e:
+                    if not silent:
+                        logger.warning("Error reading tile z=%s x=%s y=%s: %s" % (z, x, y, e))
+                    errors += 1
+                    continue
                 
                 # force gzip compression only for vector
                 if is_pbf and data[0:2] != b"\x1f\x8b":
@@ -981,6 +994,8 @@ try:
             
         con.close()
         if not silent:
+            if errors > 0:
+                logger.warning("Skipped %d tiles due to errors" % errors)
             logger.info("Conversion complete: %d tiles exported" % count)
 
     def pmtiles_to_mbtiles_cmd(pmtiles_file, mbtiles_file, **kwargs):
