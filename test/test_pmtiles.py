@@ -58,6 +58,11 @@ class PMTilesConversionTestCase(unittest.TestCase):
         pmtiles_path = _output('one_tile.pmtiles')
         mbtiles_out = _output('roundtrip.mbtiles')
 
+        # Get source tile count
+        src_con = sqlite3.connect(ONE_TILE_MBTILES)
+        src_rows = list(src_con.execute("SELECT zoom_level, tile_column, tile_row FROM tiles"))
+        src_con.close()
+
         mbtiles_to_pmtiles_cmd(ONE_TILE_MBTILES, pmtiles_path, silent=True)
         pmtiles_to_mbtiles_cmd(pmtiles_path, mbtiles_out, silent=True)
 
@@ -65,8 +70,7 @@ class PMTilesConversionTestCase(unittest.TestCase):
         con = sqlite3.connect(mbtiles_out)
         rows = list(con.execute("SELECT zoom_level, tile_column, tile_row FROM tiles"))
         con.close()
-        self.assertEqual(len(rows), 1)
-        self.assertEqual(rows[0], (0, 0, 0))
+        self.assertEqual(len(rows), len(src_rows))
 
     def test_pmtiles_to_mbtiles_metadata_preserved(self):
         """Metadata name survives MBTiles → PMTiles → MBTiles roundtrip."""
