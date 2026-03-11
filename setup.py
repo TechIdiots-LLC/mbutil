@@ -10,5 +10,5 @@ setup(
     url='https://github.com/TechIdiots-LLC/mbutil',
     license='LICENSE.md',
     description='An importer and exporter for MBTiles and PMTiles',
-    long_description=open('README.md').read(),
+    long_description=open('README.md').read() if __import__('os').path.exists('README.md') else '',
 )
