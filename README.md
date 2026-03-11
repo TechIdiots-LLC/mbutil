@@ -1,6 +1,6 @@
 # MBUtil
 
-**MBUtil** is an active, community-maintained utility for importing, exporting, and converting between the [MBTiles](http://mbtiles.org/) and [PMTiles](https://protomaps.com/docs/pmtiles) archive formats, as well as flat directory tile structures on disk.
+**MBUtil** is an active, community-maintained utility for importing, exporting, and converting between the [MBTiles](https://github.com/mapbox/mbtiles-spec) and [PMTiles](https://protomaps.com/docs/pmtiles) archive formats, as well as flat directory tile structures on disk.
 
 > [!IMPORTANT]
 > This repository is a fork of the original [mapbox/mbutil](https://github.com/mapbox/mbutil), which was archived on March 10, 2026. This version provides continued maintenance and includes support for the PMTiles format.
@@ -10,7 +10,8 @@
 ## ⚙️ Capabilities
 
 - **Format Conversion**: Directly convert `.mbtiles` to `.pmtiles` and vice versa.
-- **PMTiles Support**: Integration with the [PMTiles specification](https://github.com/protomaps/PMTiles) for single-file tile archiving.
+- **MBTiles Support**: Full import/export support for the [MBTiles](https://github.com/mapbox/mbtiles-spec) SQLite-based tile archive format.
+- **PMTiles Support**: Full import/export and direct conversion support for the [PMTiles](https://github.com/protomaps/PMTiles) single-file tile archive format.
 - **Disk Export**: Extract tiles from an archive to a standard directory structure (XYZ, TMS, etc.).
 - **Disk Import**: Pack a directory of tiles into a single portable archive.
 - **Deduplication**: Use hash-based compression to reduce file sizes for repetitive maps (e.g., oceans or vector data).
