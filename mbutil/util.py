@@ -1083,6 +1083,7 @@ try:
                 logger.info(" Total tiles: %d" % count)
                     
         optimize_database(con, silent)
+        con.close()
 except ImportError:
     def disk_to_pmtiles(*args, **kwargs):
         raise NotImplementedError("PMTiles support not installed/found.")
