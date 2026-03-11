@@ -942,8 +942,12 @@ try:
             
             # Per PMTiles spec: scheme is always xyz, remove if present
             mbtiles_metadata.pop('scheme', None)
-                
-            is_pbf = mbtiles_metadata.get("format") in ("pbf", "mvt")
+
+            # Resolve format: user flag > metadata > default 'png'
+            image_format = kwargs.get('format', mbtiles_metadata.get('format', 'png'))
+            mbtiles_metadata['format'] = image_format
+
+            is_pbf = image_format in ("pbf", "mvt")
             
             count = 0
             start_time = time.time()
