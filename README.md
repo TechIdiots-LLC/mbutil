@@ -1,192 +1,128 @@
 # MBUtil
 
-MBUtil is a utility for importing and exporting the [MBTiles](http://mbtiles.org/) format, the [PMTiles](https://protomaps.com/docs/pmtiles) format, or converting between them.
+**MBUtil** is an active, community-maintained utility for importing, exporting, and converting between the [MBTiles](http://mbtiles.org/) and [PMTiles](https://protomaps.com/docs/pmtiles) formats.
 
-## Installation
+> [!IMPORTANT]
+> This repository is a fork of the original [mapbox/mbutil](https://github.com/mapbox/mbutil), which was archived on March 10, 2026. This version provides continued maintenance and includes support for the PMTiles format.
 
-Git checkout (requires git)
+---
 
-    git clone --recursive https://github.com/acalcutt/mbutil.git
-    cd mbutil
-    # get usage
-    ./mb-util -h
+## ⚙️ Capabilities
 
-*(Note: the `--recursive` flag is required. If already cloned, run `git submodule update --init` in the folder).*
+- **Format Conversion**: Directly convert `.mbtiles` to `.pmtiles` and vice versa.
+- **PMTiles Support**: Integration with the [PMTiles specification](https://github.com/protomaps/PMTiles) for single-file tile archiving.
+- **Disk Export**: Extract tiles from an archive to a standard directory structure (XYZ, TMS, etc.).
+- **Disk Import**: Pack a directory of tiles into a single portable archive.
+- **Deduplication**: Use hash-based compression to reduce file sizes for repetitive maps (e.g., oceans or vector data).
 
-Then to install the mb-util command globally:
+---
 
-    sudo python setup.py install
-    # then you can run:
-    mb-util
+## 📦 Installation
 
-## Usage
+This project uses git submodules for PMTiles support. The `--recursive` flag is required.
 
-    $ mb-util -h
-    Usage: mb-util [options] input output
+```bash
+git clone --recursive https://github.com/acalcutt/mbutil.git
+cd mbutil
 
-    Examples:
-        Export an mbtiles or pmtiles file to a directory of files:
-        $ mb-util world.mbtiles dumps # when the 2nd argument is "dumps", then dumps the metatdata.json
-        $ mb-util world.pmtiles tiles # tiles must not already exist
+# Install the mb-util command globally
+sudo python3 setup.py install
+```
 
-        Import a directory of tiles into an mbtiles or pmtiles file:
-        $ mb-util tiles world.mbtiles # file must not already exist
+> **Note:** If you already cloned the repo without submodules, run `git submodule update --init` inside the folder.
 
-        Convert directly between mbtiles and pmtiles archives:
-        $ mb-util world.mbtiles world.pmtiles
-        $ mb-util world.pmtiles world.mbtiles
+---
 
-    Options:
-      -h, --help            Show this help message and exit
-      --scheme=SCHEME       Tiling scheme of the tiles. Default is "xyz" (z/x/y),
-                            other options are "tms" which is also z/x/y
-                            but uses a flipped y coordinate, and "wms" which replicates
-                            the MapServer WMS TileCache directory structure
-                            "z/000/000/x/000/000/y.png", "zyx" which is the format
-                            vips dzsave --layout google uses, "ags" for ArcGIS Server,
-                            and "gwc" for GeoWebCache.
-      --image_format=FORMAT
-                            The format of the image tiles: png, jpg, webp, pbf, mlt, or mvt
-      --grid_callback=CALLBACK
-                            Option to control JSONP callback for UTFGrid tiles. If
-                            grids are not used as JSONP, you can
-                            remove callbacks specifying --grid_callback=""
-      --do_compression      Enable tile deduplication to reduce mbtiles file size.
-                            Uses hash-based deduplication to store each unique tile
-                            only once, with references for duplicate tiles.
-      --hash_type=HASH_TYPE
-                            Hash algorithm for tile deduplication (use with --do_compression).
-                            Options: fnv1a (fast, default), sha256 (most secure),
-                            sha256_truncated (balanced), md5 (legacy)
-      --silent              Dictate whether the operations should run silently
+## 🛠 Usage
 
-## Examples
+```bash
+mb-util [options] <input> <output>
+```
 
-Export an `mbtiles` or `pmtiles` file to files on the filesystem:
+### Quick Examples
 
-    mb-util World_Light.mbtiles adirectory
-    mb-util World_Light.pmtiles anotherdirectory
+| Action | Command |
+|---|---|
+| Convert MBTiles to PMTiles | `mb-util world.mbtiles world.pmtiles` |
+| Convert PMTiles to MBTiles | `mb-util world.pmtiles world.mbtiles` |
+| Extract to Directory | `mb-util world.pmtiles ./tiles_dir` |
+| Import from Directory | `mb-util ./tiles_dir world.mbtiles` |
+| Dump Metadata | `mb-util world.pmtiles dumps` |
 
-Import a directory into a `mbtiles` or `pmtiles` file:
+### Options
 
-    mb-util directory World_Light.mbtiles
-    mb-util directory World_Light.pmtiles
+| Option | Description |
+|---|---|
+| `-h, --help` | Show help message and exit |
+| `--scheme=SCHEME` | Tiling scheme: `xyz` (default), `tms`, `wms`, `zyx`, `ags`, `gwc` |
+| `--image_format=FORMAT` | Tile format: `png`, `jpg`, `webp`, `pbf`, `mvt`, `mlt` |
+| `--do_compression` | Enable hash-based tile deduplication to reduce file size |
+| `--hash_type=TYPE` | Algorithm for deduplication: `fnv1a` (fastest, default), `sha256`, `sha256_truncated`, `md5` |
+| `--silent` | Disable progress logging for faster execution |
 
-Directly convert between formats:
+---
 
-    mb-util archive.mbtiles new_archive.pmtiles
-    mb-util input.pmtiles output.mbtiles
+## 💎 Tile Deduplication
 
-Dump archive metadata to the terminal:
-    
-    mb-util World_Light.pmtiles dumps
+When using `--do_compression`, MBUtil ensures that identical tile images are only stored once, using internal references for duplicates. This is effective for maps with large areas of solid color or repetitive vector data.
 
-Import with tile deduplication (reduces file size for MBTiles):
-
-    mb-util --do_compression tiles World_Light.mbtiles
-
-Import with deduplication using SHA256 for maximum collision resistance:
-
-    mb-util --do_compression --hash_type sha256 tiles World_Light.mbtiles
-
-Export using the TMS scheme:
-
-    mb-util --scheme=tms World_Light.mbtiles tiles
-
-## Tile Deduplication
-
-When importing tiles with `--do_compression`, MBUtil uses hash-based deduplication to significantly reduce file size. This is especially useful for:
-
-- **Map tiles with repetitive content** (ocean tiles, empty areas, borders)
-- **Vector tiles** where many tiles may be identical
-- **Large datasets** spanning multiple zoom levels
-
-### How it works
-
-Instead of storing duplicate tiles multiple times, MBUtil:
-1. Computes a hash of each tile's content
-2. Stores each unique tile only once in a `tiles_data` table
-3. Creates references to unique tiles in a `tiles_shallow` table
-4. Presents a standard `tiles` view for compatibility
+```bash
+mb-util --do_compression --hash_type sha256_truncated ./my_tiles world.mbtiles
+```
 
 ### Hash Types
 
 | Hash Type | Bits | Speed | Best For |
-|-----------|------|-------|----------|
-| **fnv1a** (default) | 64 | Fastest | General use, good distribution |
-| **sha256_truncated** | 64 | Medium | Balance of speed and standardization |
-| **sha256** | 256 | Medium | Maximum collision resistance, critical data |
+|---|---|---|---|
+| **fnv1a** (default) | 64 | Fastest | General use |
+| **sha256_truncated** | 64 | Medium | Balanced performance |
+| **sha256** | 256 | Medium | Maximum collision resistance |
 | **md5** | 128 | Fast | Legacy compatibility |
 
-**Collision risk at 10 million tiles:**
-- 64-bit hashes (fnv1a, sha256_truncated): ~0.001% risk
-- 256-bit hash (sha256): effectively zero risk
-- 128-bit hash (md5): ~0.00001% risk
+---
 
-### Example deduplication results
+## ⚡ Performance & Large Files
 
-For a typical map with ocean tiles:
-```
-Total tiles: 1,000,000
-Unique tiles: 250,000
-Duplicate tiles: 750,000 (75%)
-Space saved: ~3.5 GB (assuming ~5KB average tile size)
+- **Deduplication**: Use `--do_compression` for datasets with repetitive content to save disk space.
+- **Silent mode**: Use `--silent` to skip progress logging for a small speed boost.
+- **Temporary Storage**: When converting to PMTiles, the utility writes a temporary file during conversion. By default this goes to `/tmp`, which on some Linux systems is RAM-backed (tmpfs). For very large files, redirect it to a physical disk:
+
+```bash
+TMPDIR=/mnt/external_drive/tmp mb-util world.mbtiles world.pmtiles
 ```
 
-## Requirements
+The temp file grows to roughly the same size as the output PMTiles archive and is deleted automatically when conversion completes.
 
-* Python `>= 2.6`
+---
 
-## Metadata
+## 🔗 Specifications & Resources
 
-MBUtil imports and exports metadata as JSON, in the root of the tile directory, as a file named `metadata.json`.
+- [PMTiles Project](https://github.com/protomaps/PMTiles) — The cloud-native, single-file tile format.
+- [PMTiles Documentation](https://protomaps.com/docs/pmtiles) — Reference for the PMTiles ecosystem.
+- [MBTiles Spec](https://github.com/mapbox/mbtiles-spec) — The SQLite-based tile container specification.
 
-```javascript
-{
-    "name": "World Light",
-    "description": "A Test Metadata",
-    "version": "3"
-}
+---
+
+## 🧪 Testing
+
+This project uses [nosetests](http://readthedocs.org/docs/nose/en/latest/).
+
+```bash
+pip install nose
+nosetests
 ```
 
-## Testing
+---
 
-This project uses [nosetests](http://readthedocs.org/docs/nose/en/latest/) for testing. Install nosetests:
+## 📄 License
 
-    pip install nose
+BSD — See [LICENSE.md](LICENSE.md) for details.
 
-or
+---
 
-    easy_install nose
-    
-Then run:
+## 👥 Authors
 
-    nosetests
-
-## Performance Tips
-
-- Use `--do_compression` for datasets with repetitive tiles
-- Use `--silent` flag for faster processing without logging overhead
-- For very large datasets (100GB+), ensure sufficient disk space for SQLite temp files
-- **Large MBTiles→PMTiles conversions**: The PMTiles writer uses a temporary file for tile data during conversion. By default this goes to the system temp directory (`/tmp`), which on some Linux systems is RAM-backed (tmpfs). For very large files, set `TMPDIR` to a disk-backed path with enough free space:
-
-      TMPDIR=/mnt/raid0/temp mb-util world.mbtiles world.pmtiles
-
-  The temp file will be roughly the same size as the output PMTiles archive and is deleted after conversion completes.
-
-## See Also
-
-* [node-mbtiles provides mbpipe](https://github.com/mapbox/node-mbtiles/wiki/Post-processing-MBTiles-with-MBPipe), a useful utility.
-* [mbliberator](https://github.com/calvinmetcalf/mbliberator) a similar program but in node.
-* [MBTiles Specification](https://github.com/mapbox/mbtiles-spec)
-
-## License
-
-BSD - see LICENSE.md
-
-## Authors
-
-- Tom MacWright (tmcw)
-- Dane Springmeyer (springmeyer)
-- Mathieu Leplatre (leplatrem)
-- Andrew Calcutt (acalcutt)
+- **Andrew Calcutt** ([acalcutt](https://github.com/acalcutt)) — Current Maintainer
+- Tom MacWright ([tmcw](https://github.com/tmcw)) — Original Creator
+- Dane Springmeyer ([springmeyer](https://github.com/springmeyer))
+- Mathieu Leplatre ([leplatrem](https://github.com/leplatrem))
