@@ -111,12 +111,24 @@ The temp file grows to roughly the same size as the output PMTiles archive and i
 
 ## 🧪 Testing
 
-This project uses [nosetests](http://readthedocs.org/docs/nose/en/latest/).
+Tests use Python's built-in `unittest` and are compatible with both `pytest` (recommended) and `nosetests`.
 
 ```bash
+# Using pytest (recommended)
+pip install pytest
+pytest test/
+
+# Using unittest directly
+python -m unittest discover test/
+
+# Using nosetests (legacy)
 pip install nose
 nosetests
 ```
+
+Test files:
+- `test/test.py` — MBTiles import/export tests
+- `test/test_pmtiles.py` — PMTiles conversion and roundtrip tests (requires PMTiles submodule)
 
 ---
 
