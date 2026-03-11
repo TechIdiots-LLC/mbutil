@@ -57,7 +57,7 @@ mb-util [options] <input> <output>
 | `-h, --help` | Show help message and exit |
 | `--scheme=SCHEME` | Tiling scheme: `xyz` (default), `tms`, `wms`, `zyx`, `ags`, `gwc` |
 | `--image_format=FORMAT` | Tile format: `png`, `jpg`, `webp`, `pbf`, `mvt`, `mlt` |
-| `--do_compression` | Enable hash-based tile deduplication to reduce file size |
+| `--do_compression` | Enable hash-based tile deduplication when writing to **MBTiles** (has no effect for PMTiles or disk output) |
 | `--hash_type=TYPE` | Algorithm for deduplication: `fnv1a` (fastest, default), `sha256`, `sha256_truncated`, `md5` |
 | `--silent` | Disable progress logging for faster execution |
 
@@ -65,9 +65,14 @@ mb-util [options] <input> <output>
 
 ## 💎 Tile Deduplication
 
-When using `--do_compression`, MBUtil ensures that identical tile images are only stored once, using internal references for duplicates. This is effective for maps with large areas of solid color or repetitive vector data.
+Deduplication behaviour varies by output format:
+
+- **MBTiles output**: Use `--do_compression` to enable hash-based deduplication. Identical tiles are stored only once with internal references, which can significantly reduce file size for repetitive maps (e.g. ocean tiles, empty areas, vector data).
+- **PMTiles output**: Deduplication is built into the PMTiles format and happens automatically. `--do_compression` is not needed and has no effect.
+- **Disk output**: No deduplication — each tile is written as an individual file.
 
 ```bash
+# Deduplicate when writing to MBTiles
 mb-util --do_compression --hash_type sha256_truncated ./my_tiles world.mbtiles
 ```
 
@@ -84,7 +89,7 @@ mb-util --do_compression --hash_type sha256_truncated ./my_tiles world.mbtiles
 
 ## ⚡ Performance & Large Files
 
-- **Deduplication**: Use `--do_compression` for datasets with repetitive content to save disk space.
+- **Deduplication**: Use `--do_compression` when writing to MBTiles to reduce file size for repetitive content. PMTiles handles deduplication automatically.
 - **Silent mode**: Use `--silent` to skip progress logging for a small speed boost.
 - **Temporary Storage**: When converting to PMTiles, the utility writes a temporary file during conversion. By default this goes to `/tmp`, which on some Linux systems is RAM-backed (tmpfs). For very large files, redirect it to a physical disk:
 
