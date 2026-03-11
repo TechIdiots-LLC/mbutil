@@ -2,13 +2,9 @@ name: 'Build, Publish Docker and GitHub Release'
 
 on:
   workflow_dispatch:
-    inputs:
-      docker_user:
-        description: 'Docker Username'
-        required: true
-      docker_token:
-        description: 'Docker Token'
-        required: true
+  push:
+    branches:
+      - master
 
 permissions:
   contents: write
@@ -62,6 +58,7 @@ jobs:
     runs-on: ${{ matrix.runs-on }}
     needs: release-check
     if: ${{ needs.release-check.outputs.published == 'false' }}
+    environment: release
 
     strategy:
       fail-fast: false
@@ -84,8 +81,8 @@ jobs:
       - name: Login to DockerHub
         uses: docker/login-action@v3
         with:
-          username: ${{ github.event.inputs.docker_user }}
-          password: ${{ github.event.inputs.docker_token }}
+          username: ${{ secrets.DOCKER_USER }}
+          password: ${{ secrets.DOCKER_TOKEN }}
 
       - name: Build and Push ${{ matrix.arch }} Image
         uses: docker/build-push-action@v6
@@ -103,6 +100,7 @@ jobs:
     runs-on: ubuntu-latest
     needs: [release-check, build_docker_images]
     if: ${{ needs.release-check.outputs.published == 'false' }}
+    environment: release
 
     steps:
       - name: Checkout code
@@ -127,8 +125,8 @@ jobs:
       - name: Login to DockerHub
         uses: docker/login-action@v3
         with:
-          username: ${{ github.event.inputs.docker_user }}
-          password: ${{ github.event.inputs.docker_token }}
+          username: ${{ secrets.DOCKER_USER }}
+          password: ${{ secrets.DOCKER_TOKEN }}
 
       - name: Create and push multi-arch Docker manifest
         run: |
