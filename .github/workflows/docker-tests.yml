@@ -1,0 +1,117 @@
+name: Docker Tests
+
+on:
+  push:
+    branches: ["**"]
+  pull_request:
+    branches: ["**"]
+
+jobs:
+  docker-test:
+    name: Build and Test Docker Image
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+        with:
+          submodules: recursive
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
+
+      - name: Build Docker image
+        uses: docker/build-push-action@v6
+        with:
+          context: .
+          push: false
+          load: true
+          tags: mbutil:test
+          cache-from: type=gha
+          cache-to: type=gha,mode=max
+
+      - name: Prepare test workspace
+        run: |
+          mkdir -p /tmp/mbutil-test
+          cp test/data/one_tile.mbtiles /tmp/mbutil-test/
+
+      - name: Test MBTiles → PMTiles conversion
+        run: |
+          docker run --rm \
+            -v /tmp/mbutil-test:/data \
+            mbutil:test \
+            one_tile.mbtiles one_tile.pmtiles
+          test -s /tmp/mbutil-test/one_tile.pmtiles
+          echo "✓ MBTiles → PMTiles"
+
+      - name: Test PMTiles → MBTiles conversion
+        run: |
+          docker run --rm \
+            -v /tmp/mbutil-test:/data \
+            mbutil:test \
+            one_tile.pmtiles roundtrip.mbtiles
+          test -s /tmp/mbutil-test/roundtrip.mbtiles
+          echo "✓ PMTiles → MBTiles"
+
+      - name: Test MBTiles → disk export
+        run: |
+          docker run --rm \
+            -v /tmp/mbutil-test:/data \
+            mbutil:test \
+            one_tile.mbtiles tiles_out/
+          test -d /tmp/mbutil-test/tiles_out
+          test -f /tmp/mbutil-test/tiles_out/metadata.json
+          echo "✓ MBTiles → disk"
+
+      - name: Test disk → MBTiles import
+        run: |
+          docker run --rm \
+            -v /tmp/mbutil-test:/data \
+            mbutil:test \
+            tiles_out/ from_disk.mbtiles
+          test -s /tmp/mbutil-test/from_disk.mbtiles
+          echo "✓ Disk → MBTiles"
+
+      - name: Test PMTiles → disk export
+        run: |
+          docker run --rm \
+            -v /tmp/mbutil-test:/data \
+            mbutil:test \
+            one_tile.pmtiles pmtiles_out/
+          test -d /tmp/mbutil-test/pmtiles_out
+          test -f /tmp/mbutil-test/pmtiles_out/metadata.json
+          echo "✓ PMTiles → disk"
+
+      - name: Test disk → PMTiles import
+        run: |
+          docker run --rm \
+            -v /tmp/mbutil-test:/data \
+            mbutil:test \
+            pmtiles_out/ from_disk.pmtiles
+          test -s /tmp/mbutil-test/from_disk.pmtiles
+          echo "✓ Disk → PMTiles"
+
+      - name: Test MBTiles metadata dump
+        run: |
+          docker run --rm \
+            -v /tmp/mbutil-test:/data \
+            mbutil:test \
+            one_tile.mbtiles dumps
+          echo "✓ MBTiles metadata dump"
+
+      - name: Test PMTiles metadata dump
+        run: |
+          docker run --rm \
+            -v /tmp/mbutil-test:/data \
+            mbutil:test \
+            one_tile.pmtiles dumps
+          echo "✓ PMTiles metadata dump"
+
+      - name: Test PMTiles → MBTiles with deduplication
+        run: |
+          docker run --rm \
+            -v /tmp/mbutil-test:/data \
+            mbutil:test \
+            --do_compression one_tile.pmtiles dedup.mbtiles
+          test -s /tmp/mbutil-test/dedup.mbtiles
+          echo "✓ PMTiles → MBTiles with --do_compression"

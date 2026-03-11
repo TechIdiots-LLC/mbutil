@@ -1,0 +1,13 @@
+.git
+.github
+.travis.yml
+*.pyc
+__pycache__/
+build/
+dist/
+*.egg-info/
+.DS_Store
+patch
+test/
+README.md
+CHANGELOG.md
