@@ -168,6 +168,11 @@ Then run:
 - Use `--do_compression` for datasets with repetitive tiles
 - Use `--silent` flag for faster processing without logging overhead
 - For very large datasets (100GB+), ensure sufficient disk space for SQLite temp files
+- **Large MBTiles→PMTiles conversions**: The PMTiles writer uses a temporary file for tile data during conversion. By default this goes to the system temp directory (`/tmp`), which on some Linux systems is RAM-backed (tmpfs). For very large files, set `TMPDIR` to a disk-backed path with enough free space:
+
+      TMPDIR=/mnt/raid0/temp mb-util world.mbtiles world.pmtiles
+
+  The temp file will be roughly the same size as the output PMTiles archive and is deleted after conversion completes.
 
 ## See Also
 
