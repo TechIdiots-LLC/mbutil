@@ -1,6 +1,6 @@
 # MBUtil
 
-**MBUtil** is utility for importing, exporting, and converting between the [MBTiles](https://github.com/mapbox/mbtiles-spec) and [PMTiles](https://protomaps.com/docs/pmtiles) archive formats, as well as flat directory tile structures on disk.
+**MBUtil** is a utility for importing, exporting, and converting between the [MBTiles](https://github.com/mapbox/mbtiles-spec) and [PMTiles](https://protomaps.com/docs/pmtiles) archive formats, as well as flat directory tile structures on disk.
 
 > [!IMPORTANT]
 > This repository is a fork of the original [mapbox/mbutil](https://github.com/mapbox/mbutil), which was archived on March 10, 2026. It is now maintained under [TechIdiots LLC](https://www.techidiots.net/) and continues to be distributed under the original BSD license.
