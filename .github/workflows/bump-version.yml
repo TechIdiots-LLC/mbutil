@@ -159,7 +159,7 @@ jobs:
                       if 'dependabot' in pr['author']['login']:
                           continue
                       pr_url = f"https://github.com/{repo_full}/pull/{pr['number']}" if repo_full else f"#{pr['number']}"
-                      entry = f"- {pr['title']} ([#{pr['number']}]({pr_url})) (by [{pr['author']['login']}](https://github.com/{pr['author']['login']}))"
+                      entry = f"- {pr['title']} ([#{pr['number']}]({pr_url})) (@{pr['author']['login']})"
                       missing_entries.append(entry)
                       print(f"Added: {entry}")
                   except Exception as e:
