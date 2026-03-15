@@ -9,10 +9,8 @@
 
 ## 0.4.1
 ### ✨ Features and improvements
-
-### 🐞 Bug fixes
-
 - Update MBUtil description in README.md ([#4](https://github.com/TechIdiots-LLC/mbutil/pull/4)) (by [acalcutt](https://github.com/acalcutt))
+- Add message if file does not exist.
 
 ## 0.4.0
 
