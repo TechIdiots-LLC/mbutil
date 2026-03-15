@@ -7,6 +7,13 @@
 ### 🐞 Bug fixes
 - _...Add new stuff here..._
 
+## 0.4.2
+### ✨ Features and improvements
+
+### 🐞 Bug fixes
+
+- Read format from metadata ([#6](https://github.com/TechIdiots-LLC/mbutil/pull/6)) (by [acalcutt](https://github.com/acalcutt))
+
 ## 0.4.1
 ### ✨ Features and improvements
 - Update MBUtil description in README.md ([#4](https://github.com/TechIdiots-LLC/mbutil/pull/4)) (by [acalcutt](https://github.com/acalcutt))
