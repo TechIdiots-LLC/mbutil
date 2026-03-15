@@ -128,3 +128,11 @@ if __name__ == '__main__':
             disk_to_mbtiles(directory_path, file_path, **options.__dict__)
         sys.exit(0)
 
+    # Nothing matched — give the user a clear error
+    if not os.path.exists(args[0]):
+        sys.stderr.write('Input does not exist: %s\n' % args[0])
+        sys.stderr.write('If running in Docker, make sure you mounted the correct host directory with -v\n')
+    else:
+        sys.stderr.write('Could not determine what to do with input: %s and output: %s\n' % (args[0], args[1]))
+    sys.exit(1)
+
