@@ -226,7 +226,8 @@ def disk_to_mbtiles(directory_path, mbtiles_file, **kwargs):
     # Load metadata
     try:
         metadata = json.load(open(os.path.join(directory_path, 'metadata.json'), 'r'))
-        image_format = kwargs.get('format')
+        if metadata.get('format') and not kwargs.get('format'):
+            image_format = metadata['format']
         for name, value in prepare_metadata_for_mbtiles(metadata):
             cur.execute("""INSERT INTO metadata (name, value) VALUES (?, ?)""",
                 (name, value))
@@ -668,7 +669,6 @@ try:
             logger.debug("%s --> %s" % (directory_path, pmtiles_file))
 
         image_format = kwargs.get('format', 'png')
-        tile_type = get_tile_type(image_format)
 
         stats = {
             'total_tiles': 0,
@@ -688,6 +688,9 @@ try:
             if os.path.exists(metadata_path):
                 with open(metadata_path, 'r') as f:
                     metadata = json.load(f)
+                    # Auto-detect format from metadata if not specified on CLI
+                    if metadata.get('format') and not kwargs.get('format'):
+                        image_format = metadata['format']
                     # Normalize: parse 'json' row into top-level keys for PMTiles
                     metadata = normalize_metadata(metadata)
                     # Per PMTiles spec: scheme is always xyz, remove if present
@@ -697,6 +700,8 @@ try:
         except IOError:
             if not silent:
                 logger.warning('metadata.json not found')
+
+        tile_type = get_tile_type(image_format)
 
         # Process files
         for zoom_dir in get_dirs(directory_path):
@@ -765,6 +770,11 @@ try:
                         stats['total_tiles'] += 1
 
         tiles_to_process.sort(key=lambda item: item[0])
+
+        if not tiles_to_process:
+            logger.error("No tiles found matching format '%s' in %s" % (image_format, directory_path))
+            logger.error("Check that --image_format matches your tile file extensions (png, jpg, webp, pbf)")
+            sys.exit(1)
 
         with write(pmtiles_file) as writer:
             for tileid, file_path in tiles_to_process:
