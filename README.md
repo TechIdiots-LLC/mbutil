@@ -23,11 +23,11 @@
 This project uses git submodules for PMTiles support. The `--recursive` flag is required.
 
 ```bash
-git clone --recursive https://github.com/acalcutt/mbutil.git
+git clone --recursive https://github.com/TechIdiots-LLC/mbutil.git
 cd mbutil
 
 # Install the mb-util command globally
-sudo python3 setup.py install
+pip install .
 ```
 
 > **Note:** If you already cloned the repo without submodules, run `git submodule update --init` inside the folder.
