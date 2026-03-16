@@ -8,10 +8,7 @@
 - _...Add new stuff here..._
 
 ## 0.4.3
-### ✨ Features and improvements
-
 ### 🐞 Bug fixes
-
 - make sure pbf/mvt are gzipped ([#8](https://github.com/TechIdiots-LLC/mbutil/pull/8)) (@acalcutt)
 
 ## 0.4.2
