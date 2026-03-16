@@ -780,6 +780,9 @@ try:
             for tileid, file_path in tiles_to_process:
                 with open(file_path, 'rb') as f:
                     file_content = f.read()
+                # Ensure PBF/MVT tiles are gzip-compressed to match header
+                if image_format in ('pbf', 'mvt') and file_content[0:2] != b"\x1f\x8b":
+                    file_content = gzip.compress(file_content)
                 writer.write_tile(tileid, file_content)
                 stats['total_size'] += len(file_content)
                 
