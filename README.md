@@ -32,6 +32,10 @@ pip install .
 
 > **Note:** If you already cloned the repo without submodules, run `git submodule update --init` inside the folder.
 
+### Docker
+
+MBUtil is also available as a Docker image. See [DOCKER.md](DOCKER.md) for usage instructions.
+
 ---
 
 ## 🛠 Usage
