@@ -7,6 +7,10 @@
 ### 🐞 Bug fixes
 - _...Add new stuff here..._
 
+## 0.4.3
+### 🐞 Bug fixes
+- make sure pbf/mvt are gzipped ([#8](https://github.com/TechIdiots-LLC/mbutil/pull/8)) (@acalcutt)
+
 ## 0.4.2
 ### ✨ Features and improvements
 - Read format from metadata ([#6](https://github.com/TechIdiots-LLC/mbutil/pull/6)) (by [acalcutt](https://github.com/acalcutt))
