@@ -48,7 +48,7 @@ if __name__ == '__main__':
     parser.add_option('--image_format', dest='format',
         help='''The format of the image tiles, either png, jpg, webp or pbf''',
         choices=['png', 'jpg', 'pbf', 'webp'],
-        default='png')
+        default=None)
 
     parser.add_option('--grid_callback', dest='callback',
         help='''Option to control JSONP callback for UTFGrid tiles. If grids are not '''

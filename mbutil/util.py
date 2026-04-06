@@ -221,7 +221,7 @@ def disk_to_mbtiles(directory_path, mbtiles_file, **kwargs):
     optimize_connection(cur)
     mbtiles_setup(cur, use_deduplication=use_compression)
     
-    image_format = kwargs.get('format', 'png')
+    image_format = kwargs.get('format') or 'png'
 
     # Load metadata
     try:
@@ -517,9 +517,9 @@ def mbtiles_to_disk(mbtiles_file, directory_path, **kwargs):
             os.makedirs(tile_dir)
         
         if kwargs.get('scheme') == 'wms':
-            tile = os.path.join(tile_dir, '%03d.%s' % (int(y) % 1000, kwargs.get('format', 'png')))
+            tile = os.path.join(tile_dir, '%03d.%s' % (int(y) % 1000, kwargs.get('format') or 'png'))
         else:
-            tile = os.path.join(tile_dir, '%s.%s' % (y, kwargs.get('format', 'png')))
+            tile = os.path.join(tile_dir, '%s.%s' % (y, kwargs.get('format') or 'png'))
         
         f = open(tile, 'wb')
         f.write(t[3])
@@ -668,7 +668,7 @@ try:
             logger.info("Importing disk to PMTiles")
             logger.debug("%s --> %s" % (directory_path, pmtiles_file))
 
-        image_format = kwargs.get('format', 'png')
+        image_format = kwargs.get('format') or 'png'
 
         stats = {
             'total_tiles': 0,
@@ -848,7 +848,7 @@ try:
             reader = Reader(MmapSource(f))
             header = reader.header()
             metadata = reader.metadata()
-            pmtiles_header_to_metadata(header, metadata, kwargs.get('format', 'png'))
+            pmtiles_header_to_metadata(header, metadata, kwargs.get('format') or 'png')
         
         if not silent:
             logger.debug(json.dumps(metadata, indent=2))
@@ -867,10 +867,10 @@ try:
             header = reader.header()
             metadata = reader.metadata()
             
-            file_ext = get_tile_ext(header, kwargs.get('format', 'png'))
+            file_ext = get_tile_ext(header, kwargs.get('format') or 'png')
 
             # Populate metadata with missing standard fields from the PMTiles header
-            pmtiles_header_to_metadata(header, metadata, kwargs.get('format', 'png'))
+            pmtiles_header_to_metadata(header, metadata, kwargs.get('format') or 'png')
             
             with open(os.path.join(directory_path, 'metadata.json'), 'w') as md_f:
                 json.dump(metadata, md_f, indent=4)
@@ -957,7 +957,7 @@ try:
             mbtiles_metadata.pop('scheme', None)
 
             # Resolve format: user flag > metadata > default 'png'
-            image_format = kwargs.get('format', mbtiles_metadata.get('format', 'png'))
+            image_format = kwargs.get('format') or mbtiles_metadata.get('format', 'png')
             mbtiles_metadata['format'] = image_format
 
             is_pbf = image_format in ("pbf", "mvt")
@@ -1034,9 +1034,9 @@ try:
             header = reader.header()
             metadata = reader.metadata()
             
-            file_ext = get_tile_ext(header, kwargs.get('format', 'png'))
+            file_ext = get_tile_ext(header, kwargs.get('format') or 'png')
 
-            pmtiles_header_to_metadata(header, metadata, kwargs.get('format', 'png'))
+            pmtiles_header_to_metadata(header, metadata, kwargs.get('format') or 'png')
 
             # MBTiles stores tiles in TMS scheme
             metadata['scheme'] = 'tms'
