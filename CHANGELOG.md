@@ -7,6 +7,13 @@
 ### 🐞 Bug fixes
 - _...Add new stuff here..._
 
+## 0.4.4
+### ✨ Features and improvements
+
+### 🐞 Bug fixes
+
+- Use format as a falback ([#10](https://github.com/TechIdiots-LLC/mbutil/pull/10)) (@acalcutt)
+
 ## 0.4.3
 ### 🐞 Bug fixes
 - make sure pbf/mvt are gzipped ([#8](https://github.com/TechIdiots-LLC/mbutil/pull/8)) (@acalcutt)
