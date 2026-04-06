@@ -16,6 +16,7 @@ from mbutil import (
 
 OUTPUT_DIR = 'test/output'
 ONE_TILE_MBTILES = 'test/data/one_tile.mbtiles'
+ONE_TILE_WEBP_MBTILES = 'test/data/one_tile_webp.mbtiles'
 
 
 def _output(*parts):
@@ -205,6 +206,93 @@ class MetadataHelperTestCase(unittest.TestCase):
         raw = {'name': 'Test', 'format': 'png'}
         packed = dict(prepare_metadata_for_mbtiles(raw))
         self.assertNotIn('json', packed)
+
+
+class WebpFormatPreservationTestCase(unittest.TestCase):
+    """Regression tests for webp format being preserved through conversions.
+
+    Previously, the --image_format CLI option defaulted to 'png', which meant
+    mbtiles_to_pmtiles_cmd always received format='png' in kwargs — overriding
+    the 'webp' value stored in the MBTiles metadata.
+    """
+
+    def setUp(self):
+        shutil.rmtree(OUTPUT_DIR, ignore_errors=True)
+        os.makedirs(OUTPUT_DIR, exist_ok=True)
+        self.webp_mbtiles = ONE_TILE_WEBP_MBTILES
+
+    def tearDown(self):
+        shutil.rmtree(OUTPUT_DIR, ignore_errors=True)
+
+    def _read_pmtiles_header_and_meta(self, path):
+        import sys
+        import os as _os
+        _pmtiles_path = _os.path.abspath(_os.path.join(
+            _os.path.dirname(__file__), '..', 'PMTiles', 'python', 'pmtiles'))
+        if _pmtiles_path not in sys.path:
+            sys.path.append(_pmtiles_path)
+        from pmtiles.reader import Reader, MmapSource
+        with open(path, 'rb') as f:
+            reader = Reader(MmapSource(f))
+            return reader.header(), reader.metadata()
+
+    def test_webp_format_preserved_in_pmtiles_header(self):
+        """mbtiles→pmtiles: tile_type in PMTiles header must reflect webp, not png."""
+        import sys
+        import os as _os
+        _pmtiles_path = _os.path.abspath(_os.path.join(
+            _os.path.dirname(__file__), '..', 'PMTiles', 'python', 'pmtiles'))
+        if _pmtiles_path not in sys.path:
+            sys.path.append(_pmtiles_path)
+        from pmtiles.tile import TileType
+
+        out = _output('webp.pmtiles')
+        # No format kwarg passed — should auto-detect 'webp' from metadata
+        mbtiles_to_pmtiles_cmd(self.webp_mbtiles, out, silent=True)
+
+        header, _ = self._read_pmtiles_header_and_meta(out)
+        self.assertEqual(header['tile_type'], TileType.WEBP,
+                         "PMTiles header tile_type should be WEBP, got %s" % header['tile_type'])
+
+    def test_webp_format_preserved_in_pmtiles_metadata(self):
+        """mbtiles→pmtiles: 'format' key in PMTiles metadata must be 'webp'."""
+        out = _output('webp.pmtiles')
+        mbtiles_to_pmtiles_cmd(self.webp_mbtiles, out, silent=True)
+
+        _, meta = self._read_pmtiles_header_and_meta(out)
+        self.assertEqual(meta.get('format'), 'webp',
+                         "PMTiles metadata format should be 'webp', got %r" % meta.get('format'))
+
+    def test_explicit_format_flag_overrides_metadata(self):
+        """Explicit --image_format=png overrides source metadata format."""
+        import sys
+        import os as _os
+        _pmtiles_path = _os.path.abspath(_os.path.join(
+            _os.path.dirname(__file__), '..', 'PMTiles', 'python', 'pmtiles'))
+        if _pmtiles_path not in sys.path:
+            sys.path.append(_pmtiles_path)
+        from pmtiles.tile import TileType
+
+        out = _output('webp_forced_png.pmtiles')
+        mbtiles_to_pmtiles_cmd(self.webp_mbtiles, out, silent=True, format='png')
+
+        header, meta = self._read_pmtiles_header_and_meta(out)
+        self.assertEqual(header['tile_type'], TileType.PNG)
+        self.assertEqual(meta.get('format'), 'png')
+
+    def test_webp_format_survives_pmtiles_to_mbtiles_roundtrip(self):
+        """webp format survives mbtiles → pmtiles → mbtiles roundtrip."""
+        pmtiles_path = _output('webp.pmtiles')
+        mbtiles_out = _output('webp_roundtrip.mbtiles')
+
+        mbtiles_to_pmtiles_cmd(self.webp_mbtiles, pmtiles_path, silent=True)
+        pmtiles_to_mbtiles_cmd(pmtiles_path, mbtiles_out, silent=True)
+
+        con = sqlite3.connect(mbtiles_out)
+        meta = dict(con.execute("SELECT name, value FROM metadata"))
+        con.close()
+        self.assertEqual(meta.get('format'), 'webp',
+                         "format should be 'webp' after roundtrip, got %r" % meta.get('format'))
 
 
 if __name__ == '__main__':
