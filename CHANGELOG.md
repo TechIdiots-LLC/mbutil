@@ -9,9 +9,6 @@
 
 ## 0.4.5
 ### ✨ Features and improvements
-
-### 🐞 Bug fixes
-
 - Update PMTiles ([#12](https://github.com/TechIdiots-LLC/mbutil/pull/12)) (@acalcutt)
 
 ## 0.4.4
