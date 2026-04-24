@@ -7,6 +7,10 @@
 ### 🐞 Bug fixes
 - _...Add new stuff here..._
 
+## 0.4.5
+### ✨ Features and improvements
+- Update PMTiles ([#12](https://github.com/TechIdiots-LLC/mbutil/pull/12)) (@acalcutt)
+
 ## 0.4.4
 ### 🐞 Bug fixes
 - Use format as a falback for tile type ([#10](https://github.com/TechIdiots-LLC/mbutil/pull/10)) (@acalcutt)
