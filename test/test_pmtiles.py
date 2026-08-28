@@ -4,7 +4,7 @@ import json
 import sqlite3
 import unittest
 
-from mbutil import (
+from pmtiles_mbtiles_util import (
     mbtiles_to_pmtiles_cmd,
     pmtiles_to_mbtiles_cmd,
     disk_to_pmtiles,
@@ -108,7 +108,7 @@ class PMTilesConversionTestCase(unittest.TestCase):
 
     def test_disk_to_pmtiles_creates_file(self):
         tiles_dir = _output('tiles')
-        from mbutil import mbtiles_to_disk
+        from pmtiles_mbtiles_util import mbtiles_to_disk
         mbtiles_to_disk(ONE_TILE_MBTILES, tiles_dir, silent=True)
 
         out = _output('from_disk.pmtiles')
@@ -130,7 +130,7 @@ class PMTilesConversionTestCase(unittest.TestCase):
     def test_disk_pmtiles_disk_roundtrip(self):
         """Tile file survives disk → PMTiles → disk roundtrip."""
         tiles_dir = _output('tiles_original')
-        from mbutil import mbtiles_to_disk
+        from pmtiles_mbtiles_util import mbtiles_to_disk
         mbtiles_to_disk(ONE_TILE_MBTILES, tiles_dir, silent=True)
 
         pmtiles_path = _output('roundtrip.pmtiles')

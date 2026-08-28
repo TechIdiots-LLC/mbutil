@@ -1,7 +1,7 @@
 #!/usr/bin/env python
 
-# MBUtil: a tool for MBTiles files
-# Supports importing, exporting, and more
+# PMTiles-MBTiles-Util: a tool for MBTiles and PMTiles archives
+# Supports importing, exporting, converting, and more
 #
 # (c) Development Seed 2012
 # Licensed under BSD
@@ -601,12 +601,6 @@ def mbtiles_to_disk(mbtiles_file, directory_path, **kwargs):
         g = grids.fetchone()
 
 try:
-    import sys
-    import os
-    _pmtiles_path = os.path.abspath(os.path.join(os.path.dirname(__file__), '..', 'PMTiles', 'python', 'pmtiles'))
-    if _pmtiles_path not in sys.path:
-        sys.path.append(_pmtiles_path)
-        
     from pmtiles.writer import write
     from pmtiles.reader import Reader, MmapSource, all_tiles
     from pmtiles.tile import zxy_to_tileid, tileid_to_zxy, Compression, TileType

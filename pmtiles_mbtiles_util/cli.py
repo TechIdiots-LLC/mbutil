@@ -1,40 +1,43 @@
-#!/usr/bin/env python
+"""Command line interface for pmtiles-mbtiles-util.
 
-# MBUtil: a tool for MBTiles files
-# Supports importing, exporting, and more
-# 
-# (c) Development Seed 2012
-# (c) 2016 ePi Rational, Inc.
-# Licensed under BSD
+This lives in the package rather than in the `pmtiles-mbtiles-util` script so it can be a
+console_scripts entry point. Installing a bare script works on Linux, but on
+Windows pip has no launcher to generate from it, leaving the command unrunnable.
+
+(c) Development Seed 2012
+(c) 2016 ePi Rational, Inc.
+Licensed under BSD
+"""
 
 import logging, os, sys
 from optparse import OptionParser
 
-from mbutil import (
+from pmtiles_mbtiles_util import (
     mbtiles_to_disk, disk_to_mbtiles, mbtiles_metadata_to_disk,
     pmtiles_to_disk, disk_to_pmtiles, pmtiles_metadata_to_disk,
     mbtiles_to_pmtiles_cmd, pmtiles_to_mbtiles_cmd
 )
 
-if __name__ == '__main__':
+
+def main():
 
     logging.basicConfig(level=logging.DEBUG)
 
     parser = OptionParser(usage="""usage: %prog [options] input output
-    
+
     Examples:
 
     Export an mbtiles or pmtiles file to a directory of files:
-    $ mb-util world.mbtiles dumps # when the 2nd argument is "dumps", then dumps the metatdata.json
-    $ mb-util world.mbtiles tiles # tiles must not already exist
-    
+    $ pmtiles-mbtiles-util world.mbtiles dumps # when the 2nd argument is "dumps", then dumps the metatdata.json
+    $ pmtiles-mbtiles-util world.mbtiles tiles # tiles must not already exist
+
     Import a directory of tiles into an mbtiles or pmtiles file:
-    $ mb-util tiles world.mbtiles # mbtiles file must not already exist
-    
+    $ pmtiles-mbtiles-util tiles world.mbtiles # mbtiles file must not already exist
+
     Convert directly between mbtiles and pmtiles archives:
-    $ mb-util world.mbtiles world.pmtiles
-    $ mb-util world.pmtiles world.mbtiles""")
-    
+    $ pmtiles-mbtiles-util world.mbtiles world.pmtiles
+    $ pmtiles-mbtiles-util world.pmtiles world.mbtiles""")
+
     parser.add_option('--scheme', dest='scheme',
         help='''Tiling scheme of the tiles. Default is "xyz" (z/x/y), other options '''
         + '''are "tms" which is also z/x/y but uses a flipped y coordinate, "wms" '''
@@ -44,7 +47,7 @@ if __name__ == '__main__':
         type='choice',
         choices=['wms', 'tms', 'xyz', 'zyx', 'gwc', 'ags'],
         default='xyz')
-        
+
     parser.add_option('--image_format', dest='format',
         help='''The format of the tiles, either png, jpg, webp, pbf or mlt''',
         choices=['png', 'jpg', 'pbf', 'webp', 'mlt'],
@@ -85,17 +88,17 @@ if __name__ == '__main__':
     if os.path.isfile(args[0]) and os.path.exists(args[1]):
         sys.stderr.write('To export MBTiles or PMTiles to disk, specify a directory that does not yet exist\n')
         sys.exit(1)
-        
+
     if os.path.isfile(args[0]) and not os.path.exists(args[1]) and args[1].endswith('.pmtiles') and args[0].endswith('.mbtiles'):
         mbtiles_file, pmtiles_file = args
         mbtiles_to_pmtiles_cmd(mbtiles_file, pmtiles_file, **options.__dict__)
         sys.exit(0)
-        
+
     if os.path.isfile(args[0]) and not os.path.exists(args[1]) and args[1].endswith('.mbtiles') and args[0].endswith('.pmtiles'):
         pmtiles_file, mbtiles_file = args
         pmtiles_to_mbtiles_cmd(pmtiles_file, mbtiles_file, **options.__dict__)
         sys.exit(0)
-    
+
     # to disk
     if os.path.isfile(args[0]) and args[1]=="dumps":
         if args[0].endswith('.pmtiles'):
@@ -118,7 +121,7 @@ if __name__ == '__main__':
     if os.path.isdir(args[0]) and os.path.isfile(args[1]):
         sys.stderr.write('Importing tiles into already-existing file is not yet supported\n')
         sys.exit(1)
-    
+
     # to archive
     if os.path.isdir(args[0]) and not os.path.isfile(args[1]):
         directory_path, file_path = args
@@ -136,3 +139,6 @@ if __name__ == '__main__':
         sys.stderr.write('Could not determine what to do with input: %s and output: %s\n' % (args[0], args[1]))
     sys.exit(1)
 
+
+if __name__ == '__main__':
+    main()

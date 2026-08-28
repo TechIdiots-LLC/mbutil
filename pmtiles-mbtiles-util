@@ -1,0 +1,17 @@
+#!/usr/bin/env python
+
+# PMTiles-MBTiles-Util: a tool for MBTiles and PMTiles archives
+# Supports importing, exporting, converting, and more
+#
+# (c) Development Seed 2012
+# (c) 2016 ePi Rational, Inc.
+# Licensed under BSD
+#
+# The implementation lives in pmtiles_mbtiles_util/cli.py so it can be installed
+# as a console_scripts entry point. This shim keeps ./pmtiles-mbtiles-util
+# working in a checkout.
+
+from pmtiles_mbtiles_util.cli import main
+
+if __name__ == '__main__':
+    main()

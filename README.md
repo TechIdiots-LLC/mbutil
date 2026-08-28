@@ -1,6 +1,6 @@
-# MBUtil
+# PMTiles-MBTiles-Util
 
-**MBUtil** is a utility for importing, exporting, and converting between the [MBTiles](https://github.com/mapbox/mbtiles-spec) and [PMTiles](https://protomaps.com/docs/pmtiles) archive formats, as well as flat directory tile structures on disk.
+**PMTiles-MBTiles-Util** is a utility for importing, exporting, and converting between the [MBTiles](https://github.com/mapbox/mbtiles-spec) and [PMTiles](https://protomaps.com/docs/pmtiles) archive formats, as well as flat directory tile structures on disk. It provides the `pmtiles-mbtiles-util` command.
 
 > [!IMPORTANT]
 > This repository is a fork of the original [mapbox/mbutil](https://github.com/mapbox/mbutil), which was archived on March 10, 2026. It is now maintained under [TechIdiots LLC](https://www.techidiots.net/) and continues to be distributed under the original BSD license.
@@ -20,39 +20,52 @@
 
 ## 📦 Installation
 
-This project uses git submodules for PMTiles support. The `--recursive` flag is required.
+```bash
+pip install pmtiles-mbtiles-util
+```
+
+The name differs from the upstream project it forks. `mbutil` on PyPI belongs
+to the original, now-archived Mapbox project, and PyPI rejects `mb-util` too as
+being too similar to it. The command and the import package match the
+distribution, so nothing is shared with the original:
+
+| | This project | mapbox/mbutil |
+|---|---|---|
+| Distribution | `pmtiles-mbtiles-util` | `mbutil` |
+| Command | `pmtiles-mbtiles-util` | `mb-util` |
+| Import | `pmtiles_mbtiles_util` | `mbutil` |
+
+### From source
 
 ```bash
-git clone --recursive https://github.com/TechIdiots-LLC/mbutil.git
-cd mbutil
+git clone https://github.com/TechIdiots-LLC/pmtiles-mbtiles-util.git
+cd pmtiles-mbtiles-util
 
-# Install the mb-util command globally
+# Install the pmtiles-mbtiles-util command globally
 pip install .
 ```
 
-> **Note:** If you already cloned the repo without submodules, run `git submodule update --init` inside the folder.
-
 ### Docker
 
-MBUtil is also available as a Docker image. See [DOCKER.md](DOCKER.md) for usage instructions.
+PMTiles-MBTiles-Util is also available as a Docker image. See [DOCKER.md](DOCKER.md) for usage instructions.
 
 ---
 
 ## 🛠 Usage
 
 ```bash
-mb-util [options] <input> <output>
+pmtiles-mbtiles-util [options] <input> <output>
 ```
 
 ### Quick Examples
 
 | Action | Command |
 |---|---|
-| Convert MBTiles to PMTiles | `mb-util world.mbtiles world.pmtiles` |
-| Convert PMTiles to MBTiles | `mb-util world.pmtiles world.mbtiles` |
-| Extract to Directory | `mb-util world.pmtiles ./tiles_dir` |
-| Import from Directory | `mb-util ./tiles_dir world.mbtiles` |
-| Dump Metadata | `mb-util world.pmtiles dumps` |
+| Convert MBTiles to PMTiles | `pmtiles-mbtiles-util world.mbtiles world.pmtiles` |
+| Convert PMTiles to MBTiles | `pmtiles-mbtiles-util world.pmtiles world.mbtiles` |
+| Extract to Directory | `pmtiles-mbtiles-util world.pmtiles ./tiles_dir` |
+| Import from Directory | `pmtiles-mbtiles-util ./tiles_dir world.mbtiles` |
+| Dump Metadata | `pmtiles-mbtiles-util world.pmtiles dumps` |
 
 ### Options
 
@@ -77,7 +90,7 @@ Deduplication behaviour varies by output format:
 
 ```bash
 # Deduplicate when writing to MBTiles
-mb-util --do_compression --hash_type sha256_truncated ./my_tiles world.mbtiles
+pmtiles-mbtiles-util --do_compression --hash_type sha256_truncated ./my_tiles world.mbtiles
 ```
 
 ### Hash Types
@@ -98,7 +111,7 @@ mb-util --do_compression --hash_type sha256_truncated ./my_tiles world.mbtiles
 - **Temporary Storage**: When converting to PMTiles, the utility writes a temporary file during conversion. By default this goes to `/tmp`, which on some Linux systems is RAM-backed (tmpfs). For very large files, redirect it to a physical disk:
 
 ```bash
-TMPDIR=/mnt/external_drive/tmp mb-util world.mbtiles world.pmtiles
+TMPDIR=/mnt/external_drive/tmp pmtiles-mbtiles-util world.mbtiles world.pmtiles
 ```
 
 The temp file grows to roughly the same size as the output PMTiles archive and is deleted automatically when conversion completes.
@@ -132,7 +145,7 @@ nosetests
 
 Test files:
 - `test/test.py` — MBTiles import/export tests
-- `test/test_pmtiles.py` — PMTiles conversion and roundtrip tests (requires PMTiles submodule)
+- `test/test_pmtiles.py` — PMTiles conversion and roundtrip tests
 
 ---
 

@@ -1,6 +1,6 @@
 # Docker Usage
 
-The mbutil Docker image provides `mb-util` as its entrypoint. Mount a volume at `/data` containing your input file(s); output is written there as well.
+The PMTiles-MBTiles-Util Docker image provides `pmtiles-mbtiles-util` as its entrypoint. Mount a volume at `/data` containing your input file(s); output is written there as well.
 
 ## Quick Start
 
@@ -72,9 +72,6 @@ docker run -v $(pwd):/data wifidb/mbutil:v0.4.0 world.mbtiles world.pmtiles
 ## Building Locally
 
 ```bash
-# Initialize submodules first (required for PMTiles support)
-git submodule update --init --recursive
-
 docker build -t mbutil .
 docker run -v $(pwd):/data mbutil world.mbtiles world.pmtiles
 ```
