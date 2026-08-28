@@ -15,22 +15,24 @@ if os.path.exists('README.md'):
 # Nor is it "mb-util": PyPI rejects names that match an existing project once
 # separators are stripped, and "mb-util" reduces to "mbutil".
 #
-# The import name is unaffected. This installs as pmtiles-mbtiles-util and is
-# still `import mbutil`, still providing the `mb-util` command.
+# The import package and the command match the distribution rather than keeping
+# upstream's. mapbox's mbutil ships `packages=['mbutil']` and `scripts=['mb-util']`,
+# so reusing either name means both distributions write the same files: pip
+# installs them over each other without warning, and uninstalling one breaks the
+# other.
 setup(
     name='pmtiles-mbtiles-util',
-    version='0.5.0',
+    version='1.0.0',
     author='Andrew Calcutt',
     author_email='info@techidiots.net',
     maintainer='TechIdiots-LLC',
-    packages=['mbutil'],
-    # console_scripts, not scripts=['mb-util']: a bare script is copied verbatim,
-    # which works on Linux but leaves Windows with no launcher and no runnable
-    # `mb-util` command. The repo keeps ./mb-util as a shim for source checkouts
-    # and the Docker entrypoint.
+    packages=['pmtiles_mbtiles_util'],
+    # console_scripts, not scripts=[...]: a bare script is copied verbatim, which
+    # works on Linux but leaves Windows with no launcher and no runnable command.
+    # The repo keeps ./pmtiles-mbtiles-util as a shim for source checkouts.
     entry_points={
         'console_scripts': [
-            'mb-util = mbutil.cli:main',
+            'pmtiles-mbtiles-util = pmtiles_mbtiles_util.cli:main',
         ],
     },
     url='https://github.com/TechIdiots-LLC/pmtiles-mbtiles-util',

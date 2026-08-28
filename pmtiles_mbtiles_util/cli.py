@@ -1,8 +1,8 @@
-"""Command line interface for mbutil.
+"""Command line interface for pmtiles-mbtiles-util.
 
-This lives in the package rather than in the `mb-util` script so it can be a
+This lives in the package rather than in the `pmtiles-mbtiles-util` script so it can be a
 console_scripts entry point. Installing a bare script works on Linux, but on
-Windows pip has no launcher to generate from it, leaving `mb-util` unrunnable.
+Windows pip has no launcher to generate from it, leaving the command unrunnable.
 
 (c) Development Seed 2012
 (c) 2016 ePi Rational, Inc.
@@ -12,7 +12,7 @@ Licensed under BSD
 import logging, os, sys
 from optparse import OptionParser
 
-from mbutil import (
+from pmtiles_mbtiles_util import (
     mbtiles_to_disk, disk_to_mbtiles, mbtiles_metadata_to_disk,
     pmtiles_to_disk, disk_to_pmtiles, pmtiles_metadata_to_disk,
     mbtiles_to_pmtiles_cmd, pmtiles_to_mbtiles_cmd
@@ -28,15 +28,15 @@ def main():
     Examples:
 
     Export an mbtiles or pmtiles file to a directory of files:
-    $ mb-util world.mbtiles dumps # when the 2nd argument is "dumps", then dumps the metatdata.json
-    $ mb-util world.mbtiles tiles # tiles must not already exist
+    $ pmtiles-mbtiles-util world.mbtiles dumps # when the 2nd argument is "dumps", then dumps the metatdata.json
+    $ pmtiles-mbtiles-util world.mbtiles tiles # tiles must not already exist
 
     Import a directory of tiles into an mbtiles or pmtiles file:
-    $ mb-util tiles world.mbtiles # mbtiles file must not already exist
+    $ pmtiles-mbtiles-util tiles world.mbtiles # mbtiles file must not already exist
 
     Convert directly between mbtiles and pmtiles archives:
-    $ mb-util world.mbtiles world.pmtiles
-    $ mb-util world.pmtiles world.mbtiles""")
+    $ pmtiles-mbtiles-util world.mbtiles world.pmtiles
+    $ pmtiles-mbtiles-util world.pmtiles world.mbtiles""")
 
     parser.add_option('--scheme', dest='scheme',
         help='''Tiling scheme of the tiles. Default is "xyz" (z/x/y), other options '''

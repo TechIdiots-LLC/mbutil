@@ -3,7 +3,7 @@ import shutil
 import json
 import unittest
 
-from mbutil import mbtiles_to_disk, disk_to_mbtiles
+from pmtiles_mbtiles_util import mbtiles_to_disk, disk_to_mbtiles
 
 
 OUTPUT_DIR = 'test/output'

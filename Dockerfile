@@ -16,4 +16,4 @@ VOLUME /tmp
 
 WORKDIR /data
 
-ENTRYPOINT ["mb-util"]
+ENTRYPOINT ["pmtiles-mbtiles-util"]
