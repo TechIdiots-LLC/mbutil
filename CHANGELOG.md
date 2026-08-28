@@ -7,6 +7,14 @@
 ### 🐞 Bug fixes
 - _...Add new stuff here..._
 
+## 0.4.6
+### ✨ Features and improvements
+- Add MLT (MapLibre Tile) as a supported `--image_format` (@acalcutt)
+
+### 🐞 Bug fixes
+- Export tiles using the format declared in the archive metadata rather than always `.png`, so MBTiles→disk gives `.pbf`/`.mlt` tiles the right extension without passing `--image_format` (@acalcutt)
+- Set the PMTiles tile type for formats the bundled PMTiles library does not map, so MBTiles→PMTiles no longer writes `Unknown` for MLT (@acalcutt)
+
 ## 0.4.5
 ### ✨ Features and improvements
 - Update PMTiles ([#12](https://github.com/TechIdiots-LLC/mbutil/pull/12)) (@acalcutt)
