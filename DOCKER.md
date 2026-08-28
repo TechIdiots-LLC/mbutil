@@ -72,9 +72,6 @@ docker run -v $(pwd):/data wifidb/mbutil:v0.4.0 world.mbtiles world.pmtiles
 ## Building Locally
 
 ```bash
-# Initialize submodules first (required for PMTiles support)
-git submodule update --init --recursive
-
 docker build -t mbutil .
 docker run -v $(pwd):/data mbutil world.mbtiles world.pmtiles
 ```

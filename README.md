@@ -31,17 +31,13 @@ name are unaffected.
 
 ### From source
 
-This project uses git submodules for PMTiles support. The `--recursive` flag is required.
-
 ```bash
-git clone --recursive https://github.com/TechIdiots-LLC/mb-util.git
-cd mb-util
+git clone https://github.com/TechIdiots-LLC/pmtiles-mbtiles-util.git
+cd pmtiles-mbtiles-util
 
 # Install the mb-util command globally
 pip install .
 ```
-
-> **Note:** If you already cloned the repo without submodules, run `git submodule update --init` inside the folder.
 
 ### Docker
 
@@ -143,7 +139,7 @@ nosetests
 
 Test files:
 - `test/test.py` — MBTiles import/export tests
-- `test/test_pmtiles.py` — PMTiles conversion and roundtrip tests (requires PMTiles submodule)
+- `test/test_pmtiles.py` — PMTiles conversion and roundtrip tests
 
 ---
 

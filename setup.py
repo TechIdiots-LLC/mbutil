@@ -24,11 +24,19 @@ setup(
     author_email='info@techidiots.net',
     maintainer='TechIdiots-LLC',
     packages=['mbutil'],
-    scripts=['mb-util'],
-    url='https://github.com/TechIdiots-LLC/mb-util',
+    # console_scripts, not scripts=['mb-util']: a bare script is copied verbatim,
+    # which works on Linux but leaves Windows with no launcher and no runnable
+    # `mb-util` command. The repo keeps ./mb-util as a shim for source checkouts
+    # and the Docker entrypoint.
+    entry_points={
+        'console_scripts': [
+            'mb-util = mbutil.cli:main',
+        ],
+    },
+    url='https://github.com/TechIdiots-LLC/pmtiles-mbtiles-util',
     project_urls={
-        'Changelog': 'https://github.com/TechIdiots-LLC/mb-util/blob/master/CHANGELOG.md',
-        'Source': 'https://github.com/TechIdiots-LLC/mb-util',
+        'Changelog': 'https://github.com/TechIdiots-LLC/pmtiles-mbtiles-util/blob/master/CHANGELOG.md',
+        'Source': 'https://github.com/TechIdiots-LLC/pmtiles-mbtiles-util',
         'Upstream': 'https://github.com/mapbox/mbutil',
     },
     license='BSD-3-Clause',
@@ -48,10 +56,8 @@ setup(
         'Topic :: Scientific/Engineering :: GIS',
     ],
     python_requires='>=3.9',
-    # In a source checkout the PMTiles library is the git submodule, found via
-    # a relative path. An installed package has no submodule beside it, so
-    # without this dependency every PMTiles command would fall back to the
-    # ImportError stubs and silently do nothing. 3.7.0 is the first release
-    # carrying TileType.MLT.
+    # Without this every PMTiles command falls back to the ImportError stubs
+    # and silently does nothing. 3.7.0 is the first release carrying
+    # TileType.MLT.
     install_requires=['pmtiles>=3.7.0'],
 )

@@ -1,0 +1,144 @@
+"""Command line interface for mbutil.
+
+This lives in the package rather than in the `mb-util` script so it can be a
+console_scripts entry point. Installing a bare script works on Linux, but on
+Windows pip has no launcher to generate from it, leaving `mb-util` unrunnable.
+
+(c) Development Seed 2012
+(c) 2016 ePi Rational, Inc.
+Licensed under BSD
+"""
+
+import logging, os, sys
+from optparse import OptionParser
+
+from mbutil import (
+    mbtiles_to_disk, disk_to_mbtiles, mbtiles_metadata_to_disk,
+    pmtiles_to_disk, disk_to_pmtiles, pmtiles_metadata_to_disk,
+    mbtiles_to_pmtiles_cmd, pmtiles_to_mbtiles_cmd
+)
+
+
+def main():
+
+    logging.basicConfig(level=logging.DEBUG)
+
+    parser = OptionParser(usage="""usage: %prog [options] input output
+
+    Examples:
+
+    Export an mbtiles or pmtiles file to a directory of files:
+    $ mb-util world.mbtiles dumps # when the 2nd argument is "dumps", then dumps the metatdata.json
+    $ mb-util world.mbtiles tiles # tiles must not already exist
+
+    Import a directory of tiles into an mbtiles or pmtiles file:
+    $ mb-util tiles world.mbtiles # mbtiles file must not already exist
+
+    Convert directly between mbtiles and pmtiles archives:
+    $ mb-util world.mbtiles world.pmtiles
+    $ mb-util world.pmtiles world.mbtiles""")
+
+    parser.add_option('--scheme', dest='scheme',
+        help='''Tiling scheme of the tiles. Default is "xyz" (z/x/y), other options '''
+        + '''are "tms" which is also z/x/y but uses a flipped y coordinate, "wms" '''
+        + '''which replicates the MapServer WMS TileCache directory structure '''
+        + '''"z/000/000/x/000/000/y.png", "zyx" which is the format vips dzsave '''
+        + '''--layout google uses, "ags" for ArcGIS Server, and "gwc" for GeoWebCache.''',
+        type='choice',
+        choices=['wms', 'tms', 'xyz', 'zyx', 'gwc', 'ags'],
+        default='xyz')
+
+    parser.add_option('--image_format', dest='format',
+        help='''The format of the tiles, either png, jpg, webp, pbf or mlt''',
+        choices=['png', 'jpg', 'pbf', 'webp', 'mlt'],
+        default=None)
+
+    parser.add_option('--grid_callback', dest='callback',
+        help='''Option to control JSONP callback for UTFGrid tiles. If grids are not '''
+        + '''used as JSONP, you can remove callbacks specifying --grid_callback="" ''',
+        default='grid')
+
+    parser.add_option('--do_compression', dest='compression',
+        help='''Enable tile deduplication to reduce mbtiles file size. '''
+        + '''Uses hash-based deduplication to store each unique tile only once, '''
+        + '''with references for duplicate tiles.''',
+        action="store_true",
+        default=False)
+
+    parser.add_option('--hash_type', dest='hash_type',
+        help='''Hash algorithm for tile deduplication (use with --do_compression). '''
+        + '''Options: fnv1a (fast, default), sha256 (most secure), '''
+        + '''sha256_truncated (balanced), md5 (legacy)''',
+        type='choice',
+        choices=['fnv1a', 'sha256', 'sha256_truncated', 'md5'],
+        default='fnv1a')
+
+    parser.add_option('--silent', dest='silent',
+        help='''Dictate whether the operations should run silently''',
+        action="store_true",
+        default=False)
+
+    (options, args) = parser.parse_args()
+
+    # Transfer operations
+    if len(args) != 2:
+        parser.print_help()
+        sys.exit(1)
+
+    if os.path.isfile(args[0]) and os.path.exists(args[1]):
+        sys.stderr.write('To export MBTiles or PMTiles to disk, specify a directory that does not yet exist\n')
+        sys.exit(1)
+
+    if os.path.isfile(args[0]) and not os.path.exists(args[1]) and args[1].endswith('.pmtiles') and args[0].endswith('.mbtiles'):
+        mbtiles_file, pmtiles_file = args
+        mbtiles_to_pmtiles_cmd(mbtiles_file, pmtiles_file, **options.__dict__)
+        sys.exit(0)
+
+    if os.path.isfile(args[0]) and not os.path.exists(args[1]) and args[1].endswith('.mbtiles') and args[0].endswith('.pmtiles'):
+        pmtiles_file, mbtiles_file = args
+        pmtiles_to_mbtiles_cmd(pmtiles_file, mbtiles_file, **options.__dict__)
+        sys.exit(0)
+
+    # to disk
+    if os.path.isfile(args[0]) and args[1]=="dumps":
+        if args[0].endswith('.pmtiles'):
+            pmtiles_file, dumps = args
+            pmtiles_metadata_to_disk(pmtiles_file, **options.__dict__)
+            sys.exit(0)
+        else:
+            mbtiles_file, dumps = args
+            mbtiles_metadata_to_disk(mbtiles_file, **options.__dict__)
+            sys.exit(0)
+
+    if os.path.isfile(args[0]) and not os.path.exists(args[1]):
+        file_path, directory_path = args
+        if file_path.endswith('.pmtiles'):
+            pmtiles_to_disk(file_path, directory_path, **options.__dict__)
+        else:
+            mbtiles_to_disk(file_path, directory_path, **options.__dict__)
+        sys.exit(0)
+
+    if os.path.isdir(args[0]) and os.path.isfile(args[1]):
+        sys.stderr.write('Importing tiles into already-existing file is not yet supported\n')
+        sys.exit(1)
+
+    # to archive
+    if os.path.isdir(args[0]) and not os.path.isfile(args[1]):
+        directory_path, file_path = args
+        if file_path.endswith('.pmtiles'):
+            disk_to_pmtiles(directory_path, file_path, **options.__dict__)
+        else:
+            disk_to_mbtiles(directory_path, file_path, **options.__dict__)
+        sys.exit(0)
+
+    # Nothing matched — give the user a clear error
+    if not os.path.exists(args[0]):
+        sys.stderr.write('Input does not exist: %s\n' % args[0])
+        sys.stderr.write('If running in Docker, make sure you mounted the correct host directory with -v\n')
+    else:
+        sys.stderr.write('Could not determine what to do with input: %s and output: %s\n' % (args[0], args[1]))
+    sys.exit(1)
+
+
+if __name__ == '__main__':
+    main()

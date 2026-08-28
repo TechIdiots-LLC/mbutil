@@ -11,7 +11,8 @@
 ### ✨ Features and improvements
 - Add MLT (MapLibre Tile) as a supported `--image_format` (@acalcutt)
 - Publish to PyPI as `pmtiles-mbtiles-util` (@acalcutt)
-- Depend on the `pmtiles` package, so PMTiles conversion works in an installed copy and not only in a source checkout (@acalcutt)
+- Depend on the `pmtiles` package, so PMTiles conversion works in an installed copy and not only in a source checkout, and drop the PMTiles git submodule (@acalcutt)
+- Install `mb-util` as a console script entry point, so pip creates a launcher and the command works on Windows (@acalcutt)
 
 ### 🐞 Bug fixes
 - Export tiles using the format declared in the archive metadata rather than always `.png`, so MBTiles→disk gives `.pbf`/`.mlt` tiles the right extension without passing `--image_format` (@acalcutt)
@@ -20,23 +21,23 @@
 
 ## 0.4.5
 ### ✨ Features and improvements
-- Update PMTiles ([#12](https://github.com/TechIdiots-LLC/mb-util/pull/12)) (@acalcutt)
+- Update PMTiles ([#12](https://github.com/TechIdiots-LLC/pmtiles-mbtiles-util/pull/12)) (@acalcutt)
 
 ## 0.4.4
 ### 🐞 Bug fixes
-- Use format as a falback for tile type ([#10](https://github.com/TechIdiots-LLC/mb-util/pull/10)) (@acalcutt)
+- Use format as a falback for tile type ([#10](https://github.com/TechIdiots-LLC/pmtiles-mbtiles-util/pull/10)) (@acalcutt)
 
 ## 0.4.3
 ### 🐞 Bug fixes
-- make sure pbf/mvt are gzipped ([#8](https://github.com/TechIdiots-LLC/mb-util/pull/8)) (@acalcutt)
+- make sure pbf/mvt are gzipped ([#8](https://github.com/TechIdiots-LLC/pmtiles-mbtiles-util/pull/8)) (@acalcutt)
 
 ## 0.4.2
 ### ✨ Features and improvements
-- Read format from metadata ([#6](https://github.com/TechIdiots-LLC/mb-util/pull/6)) (by [acalcutt](https://github.com/acalcutt))
+- Read format from metadata ([#6](https://github.com/TechIdiots-LLC/pmtiles-mbtiles-util/pull/6)) (by [acalcutt](https://github.com/acalcutt))
 
 ## 0.4.1
 ### ✨ Features and improvements
-- Update MBUtil description in README.md ([#4](https://github.com/TechIdiots-LLC/mb-util/pull/4)) (by [acalcutt](https://github.com/acalcutt))
+- Update MBUtil description in README.md ([#4](https://github.com/TechIdiots-LLC/pmtiles-mbtiles-util/pull/4)) (by [acalcutt](https://github.com/acalcutt))
 - Add message if file does not exist.
 
 ## 0.4.0
