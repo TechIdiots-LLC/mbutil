@@ -10,7 +10,7 @@
 ## 0.4.6
 ### ✨ Features and improvements
 - Add MLT (MapLibre Tile) as a supported `--image_format` (@acalcutt)
-- Publish to PyPI as `mb-util` (@acalcutt)
+- Publish to PyPI as `pmtiles-mbtiles-util` (@acalcutt)
 - Depend on the `pmtiles` package, so PMTiles conversion works in an installed copy and not only in a source checkout (@acalcutt)
 
 ### 🐞 Bug fixes

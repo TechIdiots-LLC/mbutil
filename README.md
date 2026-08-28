@@ -21,12 +21,13 @@
 ## 📦 Installation
 
 ```bash
-pip install mb-util
+pip install pmtiles-mbtiles-util
 ```
 
-The distribution is named `mb-util` because `mbutil` on PyPI belongs to the
-original, now-archived Mapbox project. The command and the import name are
-unaffected.
+The distribution is named `pmtiles-mbtiles-util` because `mbutil` on PyPI
+belongs to the original, now-archived Mapbox project, and PyPI also rejects
+`mb-util` as too similar to it. The `mb-util` command and the `mbutil` import
+name are unaffected.
 
 ### From source
 

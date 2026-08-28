@@ -12,10 +12,13 @@ if os.path.exists('README.md'):
 # organisation account owns projects but does not scope their names, so there
 # is no techidiots-llc/mbutil to publish under.
 #
-# The import name is unaffected. This installs as mb-util and is still
-# `import mbutil`, still providing the `mb-util` command.
+# Nor is it "mb-util": PyPI rejects names that match an existing project once
+# separators are stripped, and "mb-util" reduces to "mbutil".
+#
+# The import name is unaffected. This installs as pmtiles-mbtiles-util and is
+# still `import mbutil`, still providing the `mb-util` command.
 setup(
-    name='mb-util',
+    name='pmtiles-mbtiles-util',
     version='0.4.6',
     author='Andrew Calcutt',
     author_email='info@techidiots.net',

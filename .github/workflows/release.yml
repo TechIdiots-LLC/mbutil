@@ -242,8 +242,9 @@ jobs:
       # repository, `release.yml`, and the `release` environment set on this
       # job. All three have to match or the upload is rejected.
       #
-      # mb-util does not exist on PyPI yet, so it needs to be added there as a
-      # *pending* publisher; the project is created by the first upload.
+      # pmtiles-mbtiles-util does not exist on PyPI yet, so it needs to be
+      # added there as a *pending* publisher; the project is created by the
+      # first upload.
       - name: Publish to PyPI
         uses: pypa/gh-action-pypi-publish@release/v1
         with:
