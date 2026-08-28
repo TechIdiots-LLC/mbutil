@@ -1,6 +1,6 @@
 # Docker Usage
 
-The mbutil Docker image provides `mb-util` as its entrypoint. Mount a volume at `/data` containing your input file(s); output is written there as well.
+The PMTiles-MBTiles-Util Docker image provides `mb-util` as its entrypoint. Mount a volume at `/data` containing your input file(s); output is written there as well.
 
 ## Quick Start
 
