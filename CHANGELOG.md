@@ -10,6 +10,7 @@
 ## 1.1.0
 ### ✨ Features and improvements
 - Publish the Docker image as `techidiotsllc/pmtiles-mbtiles-util`, matching the project name. `wifidb/mbutil` stops receiving updates at v1.0.0 (@acalcutt)
+- Test every Python version the package claims to support: 3.9 gains the classifier it was missing, and 3.13 is now exercised in CI rather than only advertised (@acalcutt)
 
 ## 1.0.0
 ### ⚠️ Breaking changes
