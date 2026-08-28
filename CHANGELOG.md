@@ -20,23 +20,23 @@
 
 ## 0.4.5
 ### ✨ Features and improvements
-- Update PMTiles ([#12](https://github.com/TechIdiots-LLC/mbutil/pull/12)) (@acalcutt)
+- Update PMTiles ([#12](https://github.com/TechIdiots-LLC/mb-util/pull/12)) (@acalcutt)
 
 ## 0.4.4
 ### 🐞 Bug fixes
-- Use format as a falback for tile type ([#10](https://github.com/TechIdiots-LLC/mbutil/pull/10)) (@acalcutt)
+- Use format as a falback for tile type ([#10](https://github.com/TechIdiots-LLC/mb-util/pull/10)) (@acalcutt)
 
 ## 0.4.3
 ### 🐞 Bug fixes
-- make sure pbf/mvt are gzipped ([#8](https://github.com/TechIdiots-LLC/mbutil/pull/8)) (@acalcutt)
+- make sure pbf/mvt are gzipped ([#8](https://github.com/TechIdiots-LLC/mb-util/pull/8)) (@acalcutt)
 
 ## 0.4.2
 ### ✨ Features and improvements
-- Read format from metadata ([#6](https://github.com/TechIdiots-LLC/mbutil/pull/6)) (by [acalcutt](https://github.com/acalcutt))
+- Read format from metadata ([#6](https://github.com/TechIdiots-LLC/mb-util/pull/6)) (by [acalcutt](https://github.com/acalcutt))
 
 ## 0.4.1
 ### ✨ Features and improvements
-- Update MBUtil description in README.md ([#4](https://github.com/TechIdiots-LLC/mbutil/pull/4)) (by [acalcutt](https://github.com/acalcutt))
+- Update MBUtil description in README.md ([#4](https://github.com/TechIdiots-LLC/mb-util/pull/4)) (by [acalcutt](https://github.com/acalcutt))
 - Add message if file does not exist.
 
 ## 0.4.0

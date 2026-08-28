@@ -22,10 +22,10 @@ setup(
     maintainer='TechIdiots-LLC',
     packages=['mbutil'],
     scripts=['mb-util'],
-    url='https://github.com/TechIdiots-LLC/mbutil',
+    url='https://github.com/TechIdiots-LLC/mb-util',
     project_urls={
-        'Changelog': 'https://github.com/TechIdiots-LLC/mbutil/blob/master/CHANGELOG.md',
-        'Source': 'https://github.com/TechIdiots-LLC/mbutil',
+        'Changelog': 'https://github.com/TechIdiots-LLC/mb-util/blob/master/CHANGELOG.md',
+        'Source': 'https://github.com/TechIdiots-LLC/mb-util',
         'Upstream': 'https://github.com/mapbox/mbutil',
     },
     license='BSD-3-Clause',

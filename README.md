@@ -20,11 +20,21 @@
 
 ## 📦 Installation
 
+```bash
+pip install mb-util
+```
+
+The distribution is named `mb-util` because `mbutil` on PyPI belongs to the
+original, now-archived Mapbox project. The command and the import name are
+unaffected.
+
+### From source
+
 This project uses git submodules for PMTiles support. The `--recursive` flag is required.
 
 ```bash
-git clone --recursive https://github.com/TechIdiots-LLC/mbutil.git
-cd mbutil
+git clone --recursive https://github.com/TechIdiots-LLC/mb-util.git
+cd mb-util
 
 # Install the mb-util command globally
 pip install .
