@@ -1,44 +1,44 @@
 # Docker Usage
 
-The PMTiles-MBTiles-Util Docker image provides `pmtiles-mbtiles-util` as its entrypoint. Mount a volume at `/data` containing your input file(s); output is written there as well.
+The `techidiotsllc/pmtiles-mbtiles-util` image provides `pmtiles-mbtiles-util` as its entrypoint. Mount a volume at `/data` containing your input file(s); output is written there as well.
 
 ## Quick Start
 
 ```bash
-docker pull wifidb/mbutil
+docker pull techidiotsllc/pmtiles-mbtiles-util
 ```
 
 ## Basic Conversions
 
 ```bash
 # MBTiles → PMTiles
-docker run -v $(pwd):/data wifidb/mbutil world.mbtiles world.pmtiles
+docker run -v $(pwd):/data techidiotsllc/pmtiles-mbtiles-util world.mbtiles world.pmtiles
 
 # PMTiles → MBTiles
-docker run -v $(pwd):/data wifidb/mbutil world.pmtiles world.mbtiles
+docker run -v $(pwd):/data techidiotsllc/pmtiles-mbtiles-util world.pmtiles world.mbtiles
 
 # MBTiles → disk (tile directory)
-docker run -v $(pwd):/data wifidb/mbutil world.mbtiles tiles/
+docker run -v $(pwd):/data techidiotsllc/pmtiles-mbtiles-util world.mbtiles tiles/
 
 # Disk (tile directory) → MBTiles
-docker run -v $(pwd):/data wifidb/mbutil tiles/ world.mbtiles
+docker run -v $(pwd):/data techidiotsllc/pmtiles-mbtiles-util tiles/ world.mbtiles
 
 # PMTiles → disk
-docker run -v $(pwd):/data wifidb/mbutil world.pmtiles tiles/
+docker run -v $(pwd):/data techidiotsllc/pmtiles-mbtiles-util world.pmtiles tiles/
 
 # Disk → PMTiles
-docker run -v $(pwd):/data wifidb/mbutil tiles/ world.pmtiles
+docker run -v $(pwd):/data techidiotsllc/pmtiles-mbtiles-util tiles/ world.pmtiles
 ```
 
 ## With Options
 
 ```bash
 # PMTiles → MBTiles with tile deduplication
-docker run -v $(pwd):/data wifidb/mbutil --do_compression world.pmtiles world.mbtiles
+docker run -v $(pwd):/data techidiotsllc/pmtiles-mbtiles-util --do_compression world.pmtiles world.mbtiles
 
 # Dump metadata to terminal
-docker run -v $(pwd):/data wifidb/mbutil world.pmtiles dumps
-docker run -v $(pwd):/data wifidb/mbutil world.mbtiles dumps
+docker run -v $(pwd):/data techidiotsllc/pmtiles-mbtiles-util world.pmtiles dumps
+docker run -v $(pwd):/data techidiotsllc/pmtiles-mbtiles-util world.mbtiles dumps
 ```
 
 ## Large Files (Temp Directory)
@@ -49,7 +49,7 @@ For large conversions (multi-GB files), the PMTiles writer uses a temporary file
 docker run \
   -v $(pwd):/data \
   -v /mnt/fast-disk/tmp:/tmp \
-  wifidb/mbutil world.mbtiles world.pmtiles
+  techidiotsllc/pmtiles-mbtiles-util world.mbtiles world.pmtiles
 ```
 
 ## Input and Output in Different Directories
@@ -60,18 +60,18 @@ If your input and output are on different paths, mount them separately and use a
 docker run \
   -v /source/tiles:/source \
   -v /output/tiles:/output \
-  wifidb/mbutil /source/world.mbtiles /output/world.pmtiles
+  techidiotsllc/pmtiles-mbtiles-util /source/world.mbtiles /output/world.pmtiles
 ```
 
 ## Specific Version
 
 ```bash
-docker run -v $(pwd):/data wifidb/mbutil:v0.4.0 world.mbtiles world.pmtiles
+docker run -v $(pwd):/data techidiotsllc/pmtiles-mbtiles-util:v1.1.0 world.mbtiles world.pmtiles
 ```
 
 ## Building Locally
 
 ```bash
-docker build -t mbutil .
-docker run -v $(pwd):/data mbutil world.mbtiles world.pmtiles
+docker build -t pmtiles-mbtiles-util .
+docker run -v $(pwd):/data pmtiles-mbtiles-util world.mbtiles world.pmtiles
 ```

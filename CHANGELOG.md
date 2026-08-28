@@ -7,6 +7,10 @@
 ### 🐞 Bug fixes
 - _...Add new stuff here..._
 
+## 1.1.0
+### ✨ Features and improvements
+- Publish the Docker image as `techidiotsllc/pmtiles-mbtiles-util`, matching the project name. `wifidb/mbutil` stops receiving updates at v1.0.0 (@acalcutt)
+
 ## 1.0.0
 ### ⚠️ Breaking changes
 - Rename the command to `pmtiles-mbtiles-util` and the import package to `pmtiles_mbtiles_util`. The original `mbutil` distribution ships a `mbutil` package and a `mb-util` script, so sharing either name meant both projects wrote the same files and pip installed them over each other without warning. `mb-util` and `import mbutil` no longer exist here (@acalcutt)
