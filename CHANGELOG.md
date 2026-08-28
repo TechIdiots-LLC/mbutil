@@ -14,6 +14,7 @@
 ### 🐞 Bug fixes
 - Export tiles using the format declared in the archive metadata rather than always `.png`, so MBTiles→disk gives `.pbf`/`.mlt` tiles the right extension without passing `--image_format` (@acalcutt)
 - Set the PMTiles tile type for formats the bundled PMTiles library does not map, so MBTiles→PMTiles no longer writes `Unknown` for MLT (@acalcutt)
+- Fold the MLT media type (`application/vnd.maplibre-vector-tile`, written by Planetiler) to `mlt` when reading metadata, so such archives convert instead of crashing on the `/` in the tile extension or landing in PMTiles as `Unknown` (@acalcutt)
 
 ## 0.4.5
 ### ✨ Features and improvements

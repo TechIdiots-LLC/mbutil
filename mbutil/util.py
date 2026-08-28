@@ -55,14 +55,24 @@ def get_tile_hash(data, hash_type='fnv1a'):
     else:
         raise ValueError(f"Unknown hash_type: {hash_type}. Use 'fnv1a', 'sha256', 'sha256_truncated', or 'md5'")
 
+# Producers disagree on how to spell some formats in metadata: Planetiler writes the
+# MLT media type where the Rust `mlt` tooling writes 'mlt'. Fold them to the short id
+# so format checks and file extensions only have to know one spelling.
+TILE_FORMAT_ALIASES = {
+    'application/vnd.maplibre-vector-tile': 'mlt',
+}
+
 def normalize_metadata(metadata):
     """Normalize metadata from MBTiles format to a flat dict with parsed JSON.
     
     MBTiles stores vector_layers/tilestats inside a stringified 'json' metadata row.
     PMTiles and metadata.json on disk expect them as top-level parsed objects.
     This function parses the 'json' row and merges its contents to the top level.
+    Media-type spellings of 'format' are folded to their short id.
     """
     result = dict(metadata)
+    if result.get('format') in TILE_FORMAT_ALIASES:
+        result['format'] = TILE_FORMAT_ALIASES[result['format']]
     if 'json' in result and isinstance(result['json'], str):
         try:
             json_value = json.loads(result['json'])
