@@ -22,7 +22,7 @@ if os.path.exists('README.md'):
 # other.
 setup(
     name='pmtiles-mbtiles-util',
-    version='1.0.0',
+    version='1.1.0',
     author='Andrew Calcutt',
     author_email='info@techidiots.net',
     maintainer='TechIdiots-LLC',
@@ -51,6 +51,7 @@ setup(
         'Intended Audience :: Developers',
         'License :: OSI Approved :: BSD License',
         'Programming Language :: Python :: 3',
+        'Programming Language :: Python :: 3.9',
         'Programming Language :: Python :: 3.10',
         'Programming Language :: Python :: 3.11',
         'Programming Language :: Python :: 3.12',
