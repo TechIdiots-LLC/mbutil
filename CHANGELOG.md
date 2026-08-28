@@ -10,6 +10,8 @@
 ## 0.4.6
 ### ✨ Features and improvements
 - Add MLT (MapLibre Tile) as a supported `--image_format` (@acalcutt)
+- Publish to PyPI as `mb-util` (@acalcutt)
+- Depend on the `pmtiles` package, so PMTiles conversion works in an installed copy and not only in a source checkout (@acalcutt)
 
 ### 🐞 Bug fixes
 - Export tiles using the format declared in the archive metadata rather than always `.png`, so MBTiles→disk gives `.pbf`/`.mlt` tiles the right extension without passing `--image_format` (@acalcutt)
