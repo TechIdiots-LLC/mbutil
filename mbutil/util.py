@@ -475,6 +475,10 @@ def mbtiles_to_disk(mbtiles_file, directory_path, **kwargs):
     metadata = normalize_metadata(metadata)
     json.dump(metadata, open(os.path.join(directory_path, 'metadata.json'), 'w'), indent=4)
     
+    # Fall back to the format the archive declares, so non-png tiles (pbf, mlt)
+    # get the right extension without having to pass --image_format.
+    tile_ext = kwargs.get('format') or metadata.get('format') or 'png'
+
     count = con.execute('SELECT count(zoom_level) FROM tiles;').fetchone()[0]
     done = 0
     base_path = directory_path
@@ -517,9 +521,9 @@ def mbtiles_to_disk(mbtiles_file, directory_path, **kwargs):
             os.makedirs(tile_dir)
         
         if kwargs.get('scheme') == 'wms':
-            tile = os.path.join(tile_dir, '%03d.%s' % (int(y) % 1000, kwargs.get('format') or 'png'))
+            tile = os.path.join(tile_dir, '%03d.%s' % (int(y) % 1000, tile_ext))
         else:
-            tile = os.path.join(tile_dir, '%s.%s' % (y, kwargs.get('format') or 'png'))
+            tile = os.path.join(tile_dir, '%s.%s' % (y, tile_ext))
         
         f = open(tile, 'wb')
         f.write(t[3])
@@ -968,6 +972,11 @@ try:
             
             from pmtiles.convert import mbtiles_to_header_json
             pmtiles_header, pmtiles_metadata_dict = mbtiles_to_header_json(mbtiles_metadata)
+
+            # mbtiles_to_header_json only knows the formats PMTiles shipped with, so
+            # anything newer (MLT) comes back UNKNOWN. get_tile_type covers the rest.
+            if pmtiles_header.get('tile_type') == TileType.UNKNOWN:
+                pmtiles_header['tile_type'] = get_tile_type(image_format)
             
             # If source had no center, use midpoint of zoom range instead of min_zoom
             if 'center' not in mbtiles_metadata:
