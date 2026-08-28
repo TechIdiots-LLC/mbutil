@@ -46,8 +46,8 @@ if __name__ == '__main__':
         default='xyz')
         
     parser.add_option('--image_format', dest='format',
-        help='''The format of the image tiles, either png, jpg, webp or pbf''',
-        choices=['png', 'jpg', 'pbf', 'webp'],
+        help='''The format of the tiles, either png, jpg, webp, pbf or mlt''',
+        choices=['png', 'jpg', 'pbf', 'webp', 'mlt'],
         default=None)
 
     parser.add_option('--grid_callback', dest='callback',
