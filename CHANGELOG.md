@@ -7,12 +7,15 @@
 ### 🐞 Bug fixes
 - _...Add new stuff here..._
 
+## 0.5.0
+### ✨ Features and improvements
+- Publish to PyPI as `pmtiles-mbtiles-util` (@acalcutt)
+- Install `mb-util` as a console script entry point, so pip creates a launcher and the command works on Windows (@acalcutt)
+- Depend on the `pmtiles` package instead of vendoring it as a git submodule (@acalcutt)
+
 ## 0.4.6
 ### ✨ Features and improvements
 - Add MLT (MapLibre Tile) as a supported `--image_format` (@acalcutt)
-- Publish to PyPI as `pmtiles-mbtiles-util` (@acalcutt)
-- Depend on the `pmtiles` package, so PMTiles conversion works in an installed copy and not only in a source checkout, and drop the PMTiles git submodule (@acalcutt)
-- Install `mb-util` as a console script entry point, so pip creates a launcher and the command works on Windows (@acalcutt)
 
 ### 🐞 Bug fixes
 - Export tiles using the format declared in the archive metadata rather than always `.png`, so MBTiles→disk gives `.pbf`/`.mlt` tiles the right extension without passing `--image_format` (@acalcutt)

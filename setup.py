@@ -19,7 +19,7 @@ if os.path.exists('README.md'):
 # still `import mbutil`, still providing the `mb-util` command.
 setup(
     name='pmtiles-mbtiles-util',
-    version='0.4.6',
+    version='0.5.0',
     author='Andrew Calcutt',
     author_email='info@techidiots.net',
     maintainer='TechIdiots-LLC',
